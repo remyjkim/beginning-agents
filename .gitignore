@@ -1,0 +1,3 @@
+generated/
+*.bak
+node_modules/

@@ -1,0 +1,39 @@
+# Contributing
+
+## Setup
+
+Install dependencies:
+
+```bash
+bun install
+```
+
+## Verification
+
+Run tests:
+
+```bash
+bun test
+```
+
+Run typecheck:
+
+```bash
+bun run typecheck
+```
+
+The current typecheck workflow may exclude the pre-existing `skills/shared/systematic-debugging/condition-based-waiting-example.ts` example errors during hardening work. Do not introduce new TypeScript errors outside that file.
+
+## Development Notes
+
+- Preserve the `ABOUTME` two-line header on every new `.ts` file.
+- Keep `sync-mcp.ts` compatible as a wrapper over the shared core modules.
+- Use the existing temp-directory fixture pattern in tests. Do not test against the real home directory.
+- Prefer adding behavior behind tests first. This repo uses strict TDD expectations.
+
+## Pull Requests
+
+- Keep changes scoped and reviewable.
+- Update tests when behavior changes.
+- Update docs when command surfaces or safety semantics change.
+- Do not make destructive cleanup behavior the default without explicit design approval.

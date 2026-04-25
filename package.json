@@ -1,0 +1,42 @@
+{
+  "name": "beginning-agents",
+  "bin": {
+    "bgng": "./cli/index.ts"
+  },
+  "type": "module",
+  "description": "Canonical MCP and skill registry CLI for multi-agent configuration.",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "author": "remyjkim <jkkim123@gmail.com>",
+  "homepage": "https://github.com/remyjkim/beginning-agents",
+  "bugs": {
+    "url": "https://github.com/remyjkim/beginning-agents/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/remyjkim/beginning-agents.git"
+  },
+  "keywords": [
+    "beginning-agents",
+    "bgng",
+    "agents",
+    "mcp",
+    "skills",
+    "cli",
+    "configuration"
+  ],
+  "scripts": {
+    "bgng": "bun run cli/index.ts",
+    "sync": "bun run sync-mcp.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "verify:release": "bun run scripts/verify-release-readiness.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.13"
+  },
+  "dependencies": {
+    "clipanion": "4.0.0-rc.4",
+    "smol-toml": "^1.6.1"
+  }
+}
