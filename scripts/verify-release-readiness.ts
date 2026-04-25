@@ -1,0 +1,177 @@
+// ABOUTME: Runs the release-readiness quality gate for the bgng CLI and beginning-agents package.
+// ABOUTME: Combines automated checks and explicit warnings into a single non-mutating verification entrypoint.
+
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+type CheckResult = {
+  name: string;
+  ok: boolean;
+  details?: string;
+};
+
+type GateReport = {
+  ok: boolean;
+  checks: CheckResult[];
+  warnings: string[];
+};
+
+const repoRoot = process.cwd();
+const args = new Set(process.argv.slice(2));
+const jsonMode = args.has("--json");
+const testMode = process.env.QUALITY_GATE_TEST_MODE === "1";
+
+async function runCommand(name: string, cmd: string[]) {
+  const proc = Bun.spawn(cmd, {
+    cwd: repoRoot,
+    stdout: "pipe",
+    stderr: "pipe",
+    env: process.env,
+  });
+  const stdout = await new Response(proc.stdout).text();
+  const stderr = await new Response(proc.stderr).text();
+  const exitCode = await proc.exited;
+
+  return {
+    name,
+    ok: exitCode === 0,
+    details: exitCode === 0 ? undefined : `${stdout}${stderr}`.trim(),
+  } satisfies CheckResult;
+}
+
+function findHardcodedUserPaths() {
+  const targets = [
+    "cli",
+    "sync-mcp.ts",
+    "README.md",
+    "mcp-servers.json",
+    "config.json",
+    "package.json",
+    ".ai/knowledges/01_agents-cli-usage-guide.md",
+    ".ai/knowledges/02_homebrew-release-checklist.md",
+  ];
+  const matches: string[] = [];
+
+  for (const target of targets) {
+    const pathValue = join(repoRoot, target);
+    if (!existsSync(pathValue)) {
+      continue;
+    }
+    const stat = Bun.file(pathValue);
+    if (target === "cli") {
+      for (const file of new Bun.Glob("**/*").scanSync({ cwd: pathValue, absolute: true })) {
+        if (!file.endsWith(".ts")) {
+          continue;
+        }
+        const content = readFileSync(file, "utf8");
+        if (content.includes("/Users/")) {
+          matches.push(file.replace(`${repoRoot}/`, ""));
+        }
+      }
+      continue;
+    }
+
+    const content = readFileSync(pathValue, "utf8");
+    if (content.includes("/Users/")) {
+      matches.push(target);
+    }
+  }
+
+  return matches;
+}
+
+function verifyPackageMetadata() {
+  const pkg = JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf8")) as Record<string, unknown>;
+  const requiredKeys = ["name", "version", "description", "license", "author", "keywords", "bin"] as const;
+  const missing = requiredKeys.filter((key) => pkg[key] === undefined);
+  const metadataIssues: string[] = [];
+  const warnings: string[] = [];
+
+  if (pkg.name !== "beginning-agents") {
+    metadataIssues.push("name must be beginning-agents");
+  }
+
+  if (typeof pkg.bin !== "object" || pkg.bin === null || (pkg.bin as Record<string, string>).bgng !== "./cli/index.ts") {
+    metadataIssues.push("bin.bgng must point to ./cli/index.ts");
+  }
+
+  if (typeof pkg.scripts !== "object" || pkg.scripts === null || (pkg.scripts as Record<string, string>).bgng !== "bun run cli/index.ts") {
+    metadataIssues.push("scripts.bgng must be 'bun run cli/index.ts'");
+  }
+
+  if (pkg.repository === undefined) {
+    warnings.push("repository metadata unresolved");
+  }
+
+  return {
+    check: {
+      name: "package metadata",
+      ok: missing.length === 0 && metadataIssues.length === 0,
+      details: [...(missing.length > 0 ? [`Missing: ${missing.join(", ")}`] : []), ...metadataIssues].join("; ") || undefined,
+    } satisfies CheckResult,
+    warnings,
+  };
+}
+
+function verifyDocsPresence() {
+  const requiredFiles = [
+    "README.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
+    ".ai/knowledges/01_agents-cli-usage-guide.md",
+    ".ai/knowledges/02_homebrew-release-checklist.md",
+  ];
+  const missing = requiredFiles.filter((file) => !existsSync(join(repoRoot, file)));
+
+  return {
+    name: "documentation presence",
+    ok: missing.length === 0,
+    details: missing.length > 0 ? `Missing: ${missing.join(", ")}` : undefined,
+  } satisfies CheckResult;
+}
+
+async function main() {
+  const checks: CheckResult[] = [];
+  const warnings: string[] = [];
+
+  if (testMode) {
+    checks.push({ name: "quality gate test mode", ok: true });
+  } else {
+    checks.push(await runCommand("bun test", ["bun", "test"]));
+    checks.push(await runCommand("typecheck", ["bun", "run", "typecheck"]));
+  }
+
+  const hardcodedPaths = findHardcodedUserPaths();
+  checks.push({
+    name: "hardcoded path scan",
+    ok: hardcodedPaths.length === 0,
+    details: hardcodedPaths.length > 0 ? hardcodedPaths.join(", ") : undefined,
+  });
+
+  const packageResult = verifyPackageMetadata();
+  checks.push(packageResult.check);
+  warnings.push(...packageResult.warnings);
+
+  checks.push(verifyDocsPresence());
+
+  const report: GateReport = {
+    ok: checks.every((check) => check.ok),
+    checks,
+    warnings,
+  };
+
+  if (jsonMode) {
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    for (const check of checks) {
+      console.log(`${check.ok ? "PASS" : "FAIL"} ${check.name}${check.details ? ` - ${check.details}` : ""}`);
+    }
+    for (const warning of warnings) {
+      console.log(`WARN ${warning}`);
+    }
+  }
+
+  process.exitCode = report.ok ? 0 : 1;
+}
+
+await main();

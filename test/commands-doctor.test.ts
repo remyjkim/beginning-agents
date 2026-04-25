@@ -1,0 +1,125 @@
+// ABOUTME: Verifies the public `agents doctor` command stays report-only while surfacing drift and stale state.
+// ABOUTME: Protects the safe-by-default diagnostics contract for the new CLI.
+
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdir, symlink, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { cleanupTempRoots, runAgentsCli, scaffoldCliFixture } from "./helpers";
+
+const tempRoots: string[] = [];
+
+afterEach(async () => {
+  await cleanupTempRoots(tempRoots);
+});
+
+describe("agents doctor", () => {
+  test("reports stale downstream skill symlinks", async () => {
+    const fixture = await scaffoldCliFixture({ curatedSkillNames: ["alpha"] });
+    tempRoots.push(fixture.root);
+
+    await runAgentsCli(["skills", "sync"], {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    });
+    await runAgentsCli(["skills", "uncurate", "alpha"], {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    });
+
+    const result = await runAgentsCli(["doctor"], {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Stale skill symlinks:");
+    expect(result.stdout).toContain("alpha");
+    expect(result.stdout).toMatch(/^\s*-\s/m);
+  });
+
+  test("reports broken symlinks and supports --json output", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+
+    const brokenDir = join(fixture.homeDir, ".codex", "skills");
+    await mkdir(brokenDir, { recursive: true });
+    await symlink(join(fixture.root, "missing-target"), join(brokenDir, "broken-link"), "dir");
+
+    const result = await runAgentsCli(["doctor", "--json"], {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    });
+
+    expect(result.exitCode).toBe(0);
+    const parsed = JSON.parse(result.stdout) as { brokenSymlinks: string[] };
+    expect(parsed.brokenSymlinks.some((value) => value.includes("broken-link"))).toBe(true);
+  });
+
+  test("reports MCP drift and missing generated files", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+
+    await writeFile(fixture.claudeSettings, JSON.stringify({ model: "sonnet", mcpServers: { rogue: { url: "x" } } }, null, 2));
+
+    const result = await runAgentsCli(["doctor"], {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("MCP drift:");
+    expect(result.stdout).toContain("Missing generated files:");
+  });
+
+  test("detects MCP drift when config uses tilde paths", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+
+    const configWithTildes = {
+      version: 1,
+      targets: {
+        claude: {
+          enabled: true,
+          configPath: "~/.claude/settings.json",
+          format: "json-merge",
+          mcpKey: "mcpServers",
+        },
+        codex: {
+          enabled: false,
+          configPath: "~/.codex/config.toml",
+          format: "toml-merge",
+          mcpKey: "mcp_servers",
+        },
+        cursor: {
+          enabled: false,
+          configPath: "~/.cursor/mcp.json",
+          format: "json-standalone",
+          mcpKey: "mcpServers",
+        },
+      },
+      optional: {},
+      parallel: { cli: { enabled: true }, mcp: { enabled: false } },
+    };
+
+    await writeFile(join(fixture.repoRoot, "config.json"), JSON.stringify(configWithTildes, null, 2));
+    await writeFile(
+      join(fixture.homeDir, ".claude", "settings.json"),
+      JSON.stringify({ model: "sonnet", mcpServers: { rogue: { url: "x" } } }, null, 2),
+    );
+
+    const result = await runAgentsCli(["doctor", "--json"], {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    });
+
+    expect(result.exitCode).toBe(0);
+    const parsed = JSON.parse(result.stdout) as { mcpDrift: string[] };
+    expect(parsed.mcpDrift.length).toBeGreaterThan(0);
+  });
+});

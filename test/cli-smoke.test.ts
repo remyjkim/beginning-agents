@@ -1,0 +1,51 @@
+// ABOUTME: Verifies the minimal Clipanion CLI entrypoint exists and responds to basic flags.
+// ABOUTME: Protects the initial command shell while deeper command implementations are added.
+
+import { describe, expect, test } from "bun:test";
+
+describe("CLI entrypoint", () => {
+  test("--help exits 0 and mentions 'bgng'", async () => {
+    const proc = Bun.spawn(["bun", "run", "cli/index.ts", "--help"], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const stdout = await new Response(proc.stdout).text();
+
+    expect(await proc.exited).toBe(0);
+    expect(stdout).toContain("bgng");
+  });
+
+  test("--version exits 0", async () => {
+    const proc = Bun.spawn(["bun", "run", "cli/index.ts", "--version"], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+
+    expect(await proc.exited).toBe(0);
+  });
+
+  test("unknown command exits non-zero", async () => {
+    const proc = Bun.spawn(["bun", "run", "cli/index.ts", "nonexistent"], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+
+    expect(await proc.exited).not.toBe(0);
+  });
+
+  test("exits with helpful error when run outside a repo", async () => {
+    const proc = Bun.spawn(["bun", "run", "cli/index.ts", "status"], {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: {
+        ...process.env,
+        AGENTS_REPO_ROOT: "/tmp/not-a-repo",
+        AGENTS_HOME_DIR: "/tmp",
+      },
+    });
+    const stderr = await new Response(proc.stderr).text();
+
+    expect(await proc.exited).not.toBe(0);
+    expect(stderr).toMatch(/config\.json|not.*repo|not found/i);
+  });
+});
