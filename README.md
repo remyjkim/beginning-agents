@@ -1,67 +1,57 @@
 # beginning-agents
 
-`beginning-agents` is a canonical repository and `bgng` CLI for managing shared MCP server configuration and reusable skills across local coding agents.
+`beginning-agents` is a Bun-powered CLI and canonical config repository for keeping local coding-agent tools in sync.
 
-It is built for people who want one source of truth for:
+It gives you one place to manage:
 
-- shared skill definitions
-- canonical MCP server configuration
+- MCP server definitions
+- shared agent skills
+- per-project overrides
 - synced local state for Claude Code, Codex, Cursor, and `~/.agents`
 
-## Who This Is For
+The command is:
 
-Use this project if you:
+```bash
+bgng
+```
 
-- run local coding agents and want one canonical config source
-- want a shared skill library with explicit curation and sync behavior
-- prefer safe-by-default sync and diagnostics over hidden mutation
-- are comfortable with Bun-based local tooling
+## Why This Exists
 
-If you only need a one-off MCP config file for a single tool, this repo is probably more system than you need.
+Local agent setups tend to drift. One tool gets a new MCP server, another has an older skill directory, and a project needs a slightly different config than the global default.
 
-## What It Does
+`beginning-agents` treats that setup as configuration you can inspect, version, dry-run, and apply deliberately.
 
-- keeps `config.json` and `mcp-servers.json` as the canonical registry
-- syncs that canonical state into local tool config files
-- manages a shared skill library under `skills/shared`
-- supports package-backed extension skill bundles through `bgng skills packages ...`
-- supports per-project overrides under `<project>/.agents/bgng/config.json`
-- provides a safe-by-default CLI for sync, inspection, and diagnostics
-- supports Parallel as CLI-backed skills by default, with optional MCP overlay
+It is useful when you want:
 
-## Safety Model
+- one canonical MCP registry instead of separate hand-edited tool configs
+- one curated skill layer shared across compatible agents
+- project-specific overrides without rewriting global config
+- diagnostics for stale links, drifted config, and missing generated files
+- an operator CLI that reports before it mutates
 
-The project is intentionally conservative:
-
-- sync commands are non-destructive by default
-- stale state is reported instead of silently deleted
-- `bgng doctor` is report-only
-- `sync-mcp.ts` remains available as a compatibility wrapper
+If you only need a single MCP config file for one tool, this project is probably more structure than you need.
 
 ## Requirements
 
 - Bun 1.2+
-- Node.js available for MCP servers that use `node`
-- local installations of optional tools such as `parallel-cli` or `markdownify-mcp` when you enable them
+- Node.js for MCP servers that use `node`
+- npm when installing the published package or adding npm skill bundles
+- optional local tools such as `parallel-cli` or `markdownify-mcp` only when you enable those integrations
 
-## Usage Modes
+## Install
 
-There are two supported ways to use `beginning-agents`.
-
-### 1. Use the published CLI
-
-This is the fastest path if you want the packaged canonical configuration and command surface:
+### Install the published package
 
 ```bash
 npm install -g beginning-agents
 bgng status
 ```
 
-By default, the published CLI uses the packaged canonical repo that ships with the package.
+The published package includes a packaged canonical repo. By default, global `bgng` uses that packaged config source.
 
-### 2. Use this repo as your canonical source
+### Work from a checkout
 
-This is the right choice if you want to edit the registry, add skills, or maintain your own fork:
+Use this mode if you want to edit the registry, maintain your own fork, add built-in skills, or develop the CLI:
 
 ```bash
 git clone https://github.com/remyjkim/beginning-agents.git
@@ -77,6 +67,38 @@ export AGENTS_REPO_ROOT=/path/to/beginning-agents
 bgng status
 ```
 
+For local development, link the package:
+
+```bash
+bun link
+bgng --help
+```
+
+## Quickstart
+
+Start by inspecting before writing:
+
+```bash
+bgng status
+bgng skills list
+bgng mcp list
+bgng sync --dry-run
+```
+
+If the dry run looks right, apply the synced state:
+
+```bash
+bgng sync
+```
+
+That first run gives you:
+
+- a system overview
+- the current skill inventory
+- the active MCP inventory
+- a planned-change preview
+- an explicit apply step
+
 ## What It Changes On Disk
 
 `bgng` can read and write local agent configuration under:
@@ -87,113 +109,201 @@ bgng status
 - `~/.cursor`
 - `<project>/.agents/bgng/config.json`
 
-Start with `bgng sync --dry-run` if you want to inspect the planned changes before writing anything.
+The normal sync path is conservative:
 
-## Quickstart
+- `bgng sync --dry-run` previews changes
+- sync creates or replaces managed symlinks and generated MCP config
+- stale downstream skill symlinks are reported, not deleted
+- `bgng doctor` reports issues without fixing them
 
-The safest first-run sequence is:
+## Usage Modes
+
+### Packaged canonical config
+
+Use the published package when you want the default config and CLI behavior:
 
 ```bash
+npm install -g beginning-agents
+bgng sync --dry-run
+```
+
+### Editable canonical config
+
+Use a checkout when you want to own the source of truth:
+
+```bash
+export AGENTS_REPO_ROOT=/path/to/beginning-agents
 bgng status
-bgng skills list
-bgng mcp list
+```
+
+In checkout mode, edit:
+
+- [config.json](./config.json) for target and optional-server toggles
+- [mcp-servers.json](./mcp-servers.json) for MCP server definitions
+- [skills](./skills) for built-in skill content
+
+## Command Reference
+
+General commands:
+
+- `bgng status`
+- `bgng doctor`
+- `bgng init`
+- `bgng sync`
+
+MCP commands:
+
+- `bgng mcp list`
+- `bgng mcp sync`
+
+Skill commands:
+
+- `bgng skills list`
+- `bgng skills curate <skillName>`
+- `bgng skills uncurate <skillName>`
+- `bgng skills sync`
+- `bgng skills packages add <packageSpec>`
+- `bgng skills packages list`
+- `bgng skills packages show <packageName>`
+
+Most inspection commands support `--json`. Sync commands support `--dry-run`.
+
+Use command help for the exact surface:
+
+```bash
+bgng --help
+bgng sync --help
+bgng skills packages add --help
+```
+
+## How Sync Works
+
+The core model has three layers:
+
+- source: repo config, built-in skills, and package-backed extension bundles
+- curated state: `~/.agents/skills`
+- downstream state: Claude, Codex, Cursor, and generated MCP config files
+
+`bgng sync` applies both MCP and skills:
+
+```bash
 bgng sync --dry-run
 bgng sync
 ```
 
-That gives you:
-
-- a system overview
-- the current skill inventory
-- the active MCP inventory
-- a dry-run preview
-- an explicit apply step
-
-If you want project-specific overrides, scaffold them with:
+Run only one side when needed:
 
 ```bash
-bgng init
+bgng sync --mcp-only
+bgng sync --skills-only
 ```
 
-## Install
-
-### Work from a checkout
+Limit sync to one target:
 
 ```bash
-git clone https://github.com/remyjkim/beginning-agents.git
-cd beginning-agents
-bun install
+bgng sync --target=claude
+bgng mcp sync --target=cursor
 ```
 
-Use the CLI directly from the checkout:
+## MCP Registry
+
+MCP servers are defined in [mcp-servers.json](./mcp-servers.json). Target config and optional toggles live in [config.json](./config.json).
+
+Inspect active MCP state:
 
 ```bash
-bun run bgng -- --help
+bgng mcp list
+bgng mcp list --json
 ```
 
-Or link it globally for local development:
+Apply active MCP state:
 
 ```bash
-bun link
-bgng --help
+bgng mcp sync --dry-run
+bgng mcp sync
 ```
 
-### Install the published package
+Notes:
 
-Once the package is published, install it globally with:
+- `platform-provided` entries can live in the registry but are excluded from generated local tool configs
+- optional servers are included only when enabled
+- Parallel MCP is controlled by `config.parallel.mcp.enabled`
+
+## Skill Library
+
+Built-in skills live in:
+
+- `skills/shared`
+- `skills/claude-only`
+- `skills/codex-only`
+- `skills/experimental`
+
+Curated shared skills are published through:
+
+```text
+~/.agents/skills
+```
+
+Typical built-in skill flow:
 
 ```bash
-npm install -g beginning-agents
+bgng skills list
+bgng skills curate <skillName>
+bgng skills sync --dry-run
+bgng skills sync
 ```
 
-When installed globally, `bgng` will use the packaged canonical repo by default. If you want it to operate on a different checkout, set `AGENTS_REPO_ROOT`.
+Only shared skills can be curated into `~/.agents/skills`. Claude-only and Codex-only skills sync directly to their target-specific skill directories.
 
-## Commands
+## Extension Skill Bundles
 
-Current implemented commands:
+`beginning-agents` supports package-backed extension skill bundles for skills that should be available without being added to the built-in first-party tree.
 
-- `bgng sync`
-- `bgng init`
-- `bgng skills list`
-- `bgng skills packages add <spec>`
-- `bgng skills packages list`
-- `bgng skills packages show <package>`
-- `bgng skills curate <name>`
-- `bgng skills uncurate <name>`
-- `bgng skills sync`
-- `bgng mcp list`
-- `bgng mcp sync`
-- `bgng status`
-- `bgng doctor`
+Typical flow:
 
-`sync-mcp.ts` remains available as a compatibility wrapper over the same extracted core modules.
+```bash
+bgng skills packages add <npm-package-or-local-path>
+bgng skills packages list
+bgng skills packages show <packageName>
+bgng skills curate <skillName>
+bgng skills sync
+```
+
+The distinction matters:
+
+- added means the bundle is available under `~/.agents/packages/skills`
+- curated means a shared skill is linked into `~/.agents/skills`
+- synced means the curated skill is linked into downstream tool directories
+
+Current package-backed bundle support includes add, list, show, inventory, curation, and sync. Update and remove lifecycle commands are intentionally not part of the first implementation.
 
 ## Per-Project Configuration
 
-Use per-project config when one project should see a different tool or skill set than your global default.
+Use per-project config when one project needs a different effective view than the global default.
 
-The per-project file lives at:
+Create a project config:
+
+```bash
+cd /path/to/project
+bgng init
+```
+
+This creates:
 
 ```text
 <project>/.agents/bgng/config.json
 ```
 
-Scaffold it with:
+Project config can:
 
-```bash
-bgng init
-```
-
-Per-project config can:
-
-- disable or enable MCP servers for one project
-- add a project-local MCP server definition
+- enable or disable MCP servers for one project
+- add project-local MCP server definitions
 - include or exclude skills during sync
-- disable or enable targets for one project
+- enable or disable targets locally
 
-Discovery walks upward from your current working directory and stops at the first matching file.
+Discovery walks upward from the current working directory and uses the nearest config file.
 
-Useful commands:
+Useful workflow:
 
 ```bash
 bgng status
@@ -201,11 +311,30 @@ bgng sync --dry-run
 bgng doctor
 ```
 
-Those commands will reflect the effective merged project view when a project config is active.
+Current limitation: per-project `skills.include` resolves repo-native skills only. General `bgng skills curate <skillName>` supports both repo-native shared skills and package-backed shared skills.
 
-## Sync Wrapper
+## Diagnostics
 
-Run the compatibility script from the repo root:
+Use `doctor` when local state looks wrong:
+
+```bash
+bgng doctor
+bgng doctor --json
+```
+
+It reports:
+
+- broken symlinks
+- stale downstream skill links
+- MCP drift
+- missing generated config files
+- project config issues
+
+It does not mutate local state.
+
+## Compatibility Wrapper
+
+The legacy sync entrypoint remains available from a repo checkout:
 
 ```bash
 bun run sync-mcp.ts
@@ -215,89 +344,35 @@ bun run sync-mcp.ts --skills-only
 bun run sync-mcp.ts --target=claude
 ```
 
-## MCP Registry
-
-Edit [mcp-servers.json](./mcp-servers.json) and, if the server is optional, update [config.json](./config.json). Then run:
-
-```bash
-bgng mcp sync
-```
-
-`platform-provided` entries stay in the canonical registry but are intentionally excluded from generated local tool configs.
-
-Parallel MCP is handled separately through `config.parallel.mcp.enabled` because it is an integration-mode choice, not just an optional single-server toggle.
-
-## Skill Library
-
-Place a skill in one of these directories:
-
-- `skills/shared/` for skills exposed through `~/.agents/skills/`
-- `skills/claude-only/` for Claude-only symlinks
-- `skills/codex-only/` for Codex-only symlinks
-- `skills/experimental/` for skills not yet curated
-
-For shared skills, add the curated `~/.agents/skills/<name>` symlink to point at the repo copy, then run:
-
-```bash
-bgng skills sync
-```
-
-The sync flow creates downstream symlinks in `~/.claude/skills/` and `~/.codex/skills/` and reports stale symlinks without removing them.
-
-## Extension Skill Bundles
-
-`beginning-agents` also supports optional package-backed extension skill bundles.
-
-Use them when you want to make additional skills available without adding them to the built-in first-party skill tree.
-
-Typical flow:
-
-```bash
-bgng skills packages add <npm-package-or-local-path>
-bgng skills packages list
-bgng skills packages show <package-name>
-bgng skills curate <skill-name>
-bgng skills sync
-```
-
-Important:
-
-- package-backed skills become **available** when the bundle is added
-- they are not exposed until you curate them
-- sync remains centralized in `bgng`
-- built-in first-party skills remain repo-native
+New workflows should prefer `bgng`, but `sync-mcp.ts` stays wired to the same extracted core modules.
 
 ## Optional Integrations
 
-Baseline CLI usage does not require any third-party runtime beyond Bun and Node.
+Baseline CLI usage does not require external tools beyond Bun, Node.js, and npm.
 
 Optional integrations include:
 
 - Parallel CLI-backed skills
 - Parallel MCP overlay
-- local `markdownify-mcp` installation
+- local `markdownify-mcp`
 
-These are opt-in and should not break the normal CLI workflow when absent.
-
-## Parallel
+### Parallel
 
 Parallel is integrated in two layers:
 
 - default: CLI-backed shared skills
 - optional: globally enabled Parallel MCP servers
 
-### Default behavior
-
-By default, this repo exposes these shared skills:
+Default shared skills:
 
 - `parallel-web-search`
 - `parallel-web-extract`
 - `parallel-deep-research`
 - `parallel-data-enrichment`
 
-These skills assume `parallel-cli` is installed and authenticated separately.
+Those skills assume `parallel-cli` is installed and authenticated separately.
 
-Install the CLI:
+Install:
 
 ```bash
 curl -fsSL https://parallel.ai/install.sh | bash
@@ -310,23 +385,7 @@ parallel-cli login
 parallel-cli auth
 ```
 
-The skills use structured CLI commands such as:
-
-```bash
-parallel-cli search "<query>" --json
-parallel-cli extract <url> --json
-parallel-cli research run "<question>" --json
-parallel-cli enrich suggest "<intent>" --json
-```
-
-### Optional MCP overlay
-
-This repo also models:
-
-- `parallel-search`
-- `parallel-task`
-
-These are disabled by default. To opt in globally, edit [config.json](./config.json) and set:
+To enable the optional Parallel MCP overlay, edit [config.json](./config.json):
 
 ```json
 "parallel": {
@@ -341,33 +400,38 @@ Then run:
 bgng mcp sync
 ```
 
-Notes:
-
-- `parallel-search` points at `https://search.parallel.ai/mcp`
-- `parallel-task` points at `https://task-mcp.parallel.ai/mcp`
-- Search MCP is usable anonymously at lower limits
-- Task MCP requires authentication and may require a client-side OAuth or API-key flow after sync, depending on the tool
-
-## Markdownify
+### Markdownify
 
 `markdownify` is treated as an optional local MCP dependency.
 
-The canonical registry assumes a local install path:
+The registry entry uses:
 
 ```json
 "command": "node",
 "args": ["markdownify-mcp/dist/index.js"]
 ```
 
-If you want to enable it, update the path in [mcp-servers.json](./mcp-servers.json) to match your machine and then enable it in [config.json](./config.json).
+If you enable it, make sure the path in [mcp-servers.json](./mcp-servers.json) matches your local installation and the optional toggle in [config.json](./config.json) is enabled.
+
+## Safety Model
+
+The safety model is intentionally simple:
+
+- preview first with `--dry-run`
+- inspect machine state with `status`
+- diagnose drift with `doctor`
+- curate skills explicitly before syncing them
+- treat package-backed bundles as available content, not automatically exposed behavior
+- keep cleanup report-only until a command explicitly supports repair or pruning
 
 ## Contributing
 
-Community contributions are welcome.
+Community contributions are welcome when they preserve the conservative sync model and include tests for behavior changes.
 
 Start with:
 
 ```bash
+bun install
 bun test
 bun run typecheck
 bun run verify:release --json
@@ -377,5 +441,8 @@ Then read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request.
 
 ## Documentation Map
 
-- [CONTRIBUTING.md](./CONTRIBUTING.md): contributor workflow, setup, verification, and PR expectations
-- [docs/maintainers/README.md](./docs/maintainers/README.md): maintainer-facing operational and release documentation
+- [CONTRIBUTING.md](./CONTRIBUTING.md): contributor setup, verification, and pull request expectations
+- [docs/maintainers/README.md](./docs/maintainers/README.md): release and operational documentation for maintainers
+- [.ai/knowledges/01_agents-cli-usage-guide.md](./.ai/knowledges/01_agents-cli-usage-guide.md): detailed operator guide
+- [.ai/knowledges/02_per-project-config-guide.md](./.ai/knowledges/02_per-project-config-guide.md): per-project config reference
+- [.ai/knowledges/03_npm-skill-bundles-guide.md](./.ai/knowledges/03_npm-skill-bundles-guide.md): package-backed skill bundle reference
