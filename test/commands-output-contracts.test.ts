@@ -2,6 +2,8 @@
 // ABOUTME: Protects stable operator-facing and machine-readable command surfaces across the CLI.
 
 import { afterEach, describe, expect, test } from "bun:test";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { cleanupTempRoots, runAgentsCli, scaffoldCliFixture } from "./helpers";
 
 const tempRoots: string[] = [];
@@ -50,6 +52,37 @@ describe("command output contracts", () => {
 
     for (const args of jsonCommands) {
       const result = await runAgentsCli(args, env);
+      expect(result.exitCode).toBe(0);
+      expect(() => JSON.parse(result.stdout)).not.toThrow();
+    }
+  });
+
+  test("project-aware commands keep human and json output contracts", async () => {
+    const fixture = await scaffoldCliFixture({ curatedSkillNames: ["alpha"] });
+    tempRoots.push(fixture.root);
+    const projectDir = join(fixture.root, "project");
+    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    await mkdir(dirname(projectConfigPath), { recursive: true });
+    await writeFile(
+      projectConfigPath,
+      JSON.stringify({ version: 1, skills: { include: ["beta"], exclude: ["alpha"] } }, null, 2),
+    );
+
+    const env = {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    };
+
+    for (const args of [["status"], ["doctor"], ["sync", "--dry-run"]]) {
+      const result = await runAgentsCli(args, env, projectDir);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout.trim().length).toBeGreaterThan(0);
+      expect(result.stdout).not.toContain("[object Object]");
+    }
+
+    for (const args of [["status", "--json"], ["doctor", "--json"], ["sync", "--dry-run", "--json"]]) {
+      const result = await runAgentsCli(args, env, projectDir);
       expect(result.exitCode).toBe(0);
       expect(() => JSON.parse(result.stdout)).not.toThrow();
     }

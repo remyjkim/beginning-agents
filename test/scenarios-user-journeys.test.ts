@@ -3,7 +3,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, rm, writeFile, symlink } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { cleanupTempRoots, runAgentsCli, runSyncWrapper, scaffoldCliFixture } from "./helpers";
 
 const tempRoots: string[] = [];
@@ -11,6 +11,47 @@ const tempRoots: string[] = [];
 afterEach(async () => {
   await cleanupTempRoots(tempRoots);
 });
+
+async function createBundleFixture(root: string, options?: { packageName?: string; version?: string; skillName?: string }) {
+  const packageName = options?.packageName ?? "@acme/skills-sample";
+  const version = options?.version ?? "1.0.0";
+  const skillName = options?.skillName ?? "hello-skill";
+  const bundleRoot = join(root, "bundle");
+  const skillDir = join(bundleRoot, "skills", "shared", skillName);
+
+  await mkdir(skillDir, { recursive: true });
+  await writeFile(
+    join(bundleRoot, "package.json"),
+    JSON.stringify(
+      {
+        name: packageName,
+        version,
+        description: "fixture",
+        license: "MIT",
+        files: ["skills", "bundle.json", "README.md"],
+      },
+      null,
+      2,
+    ),
+  );
+  await writeFile(
+    join(bundleRoot, "bundle.json"),
+    JSON.stringify(
+      {
+        schemaVersion: 1,
+        bundleName: packageName,
+        version,
+        displayName: "Sample Skills",
+        skills: [{ name: skillName, scope: "shared", path: `skills/shared/${skillName}` }],
+      },
+      null,
+      2,
+    ),
+  );
+  await writeFile(join(bundleRoot, "README.md"), "# fixture\n");
+  await writeFile(join(skillDir, "SKILL.md"), `---\nname: ${skillName}\ndescription: fixture\n---\n`);
+  return { bundleRoot, packageName, version, skillName };
+}
 
 describe("user journeys", () => {
   test("first-time user can inspect, curate, and sync a skill", async () => {
@@ -82,5 +123,122 @@ describe("user journeys", () => {
     expect(parsed.staleSkillSymlinks.length).toBeGreaterThan(0);
     expect(parsed.mcpDrift.length).toBeGreaterThan(0);
     expect(parsed.missingGeneratedFiles.length).toBeGreaterThan(0);
+  });
+
+  test("per-project user can init, override, preview, inspect, and diagnose", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+    const projectDir = join(fixture.root, "project");
+    await mkdir(projectDir, { recursive: true });
+    const env = {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    };
+
+    let result = await runAgentsCli(["init"], env, projectDir);
+    expect(result.exitCode).toBe(0);
+
+    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    await writeFile(
+      projectConfigPath,
+      JSON.stringify(
+        {
+          version: 1,
+          servers: {
+            context7: { enabled: false },
+            localdb: {
+              description: "Project DB",
+              transport: "stdio",
+              command: "node",
+              args: ["db-mcp.js"],
+              optional: false,
+            },
+          },
+          skills: {
+            include: ["beta"],
+          },
+        },
+        null,
+        2,
+      ),
+    );
+
+    result = await runAgentsCli(["sync", "--dry-run"], env, projectDir);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain(projectConfigPath);
+
+    result = await runAgentsCli(["sync"], env, projectDir);
+    expect(result.exitCode).toBe(0);
+
+    result = await runAgentsCli(["status"], env, projectDir);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Project");
+
+    result = await runAgentsCli(["doctor"], env, projectDir);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("No issues found");
+  });
+
+  test("invalid project config references are ignored by sync and surfaced by doctor", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+    const projectDir = join(fixture.root, "project");
+    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    await mkdir(dirname(projectConfigPath), { recursive: true });
+    await writeFile(
+      projectConfigPath,
+      JSON.stringify(
+        {
+          version: 1,
+          servers: {
+            nonexistentServer: { enabled: true },
+          },
+          skills: {
+            include: ["deleted-skill"],
+          },
+        },
+        null,
+        2,
+      ),
+    );
+    const env = {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    };
+
+    const syncResult = await runAgentsCli(["sync", "--dry-run"], env, projectDir);
+    expect(syncResult.exitCode).toBe(0);
+
+    const doctorResult = await runAgentsCli(["doctor"], env, projectDir);
+    expect(doctorResult.exitCode).toBe(0);
+    expect(doctorResult.stdout).toContain("nonexistentServer");
+    expect(doctorResult.stdout).toContain("deleted-skill");
+  });
+
+  test("package-backed bundle user can add, inspect, curate, and sync a skill", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+    const { bundleRoot } = await createBundleFixture(fixture.root);
+    const env = {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    };
+
+    let result = await runAgentsCli(["skills", "packages", "add", bundleRoot], env);
+    expect(result.exitCode).toBe(0);
+
+    result = await runAgentsCli(["skills", "packages", "show", "@acme/skills-sample"], env);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("hello-skill");
+
+    result = await runAgentsCli(["skills", "curate", "hello-skill"], env);
+    expect(result.exitCode).toBe(0);
+
+    result = await runAgentsCli(["skills", "sync"], env);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("hello-skill");
   });
 });

@@ -36,4 +36,30 @@ describe("path resolution", () => {
     expect(dirs.codexOnly).toBe("/repo/skills/codex-only");
     expect(dirs.experimental).toBe("/repo/skills/experimental");
   });
+
+  test("resolveSkillPackagesRoot returns the managed package cache root", async () => {
+    const { resolveSkillPackagesRoot } = await import("../cli/core/paths");
+    expect(resolveSkillPackagesRoot("/home/test/.agents")).toBe("/home/test/.agents/packages/skills");
+  });
+
+  test("resolveSkillPackageRoot supports scoped package names as nested paths", async () => {
+    const { resolveSkillPackageRoot } = await import("../cli/core/paths");
+    expect(resolveSkillPackageRoot("/home/test/.agents", "@acme/skills-core")).toBe(
+      "/home/test/.agents/packages/skills/@acme/skills-core",
+    );
+  });
+
+  test("resolveSkillPackageVersionRoot appends the version under the package root", async () => {
+    const { resolveSkillPackageVersionRoot } = await import("../cli/core/paths");
+    expect(resolveSkillPackageVersionRoot("/home/test/.agents", "@acme/skills-core", "1.2.0")).toBe(
+      "/home/test/.agents/packages/skills/@acme/skills-core/1.2.0",
+    );
+  });
+
+  test("resolveSkillPackageCurrentLink returns the current symlink path", async () => {
+    const { resolveSkillPackageCurrentLink } = await import("../cli/core/paths");
+    expect(resolveSkillPackageCurrentLink("/home/test/.agents", "@acme/skills-core")).toBe(
+      "/home/test/.agents/packages/skills/@acme/skills-core/current",
+    );
+  });
 });

@@ -99,9 +99,10 @@ export async function scaffoldCliFixture(options?: { parallelMcpEnabled?: boolea
   return { root, repoRoot, homeDir, agentsDir, claudeSettings, codexConfig, cursorConfig };
 }
 
-export async function runAgentsCli(args: string[], env: Record<string, string>) {
-  const proc = Bun.spawn(["bun", "run", "cli/index.ts", ...args], {
-    cwd: join(import.meta.dir, ".."),
+export async function runAgentsCli(args: string[], env: Record<string, string>, cwd?: string) {
+  const entrypoint = new URL("../cli/index.ts", import.meta.url).pathname;
+  const proc = Bun.spawn(["bun", "run", entrypoint, ...args], {
+    cwd: cwd ?? join(import.meta.dir, ".."),
     stdout: "pipe",
     stderr: "pipe",
     env: {

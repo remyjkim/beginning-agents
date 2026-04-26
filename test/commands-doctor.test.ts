@@ -3,7 +3,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, symlink, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { cleanupTempRoots, runAgentsCli, scaffoldCliFixture } from "./helpers";
 
 const tempRoots: string[] = [];
@@ -121,5 +121,45 @@ describe("agents doctor", () => {
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout) as { mcpDrift: string[] };
     expect(parsed.mcpDrift.length).toBeGreaterThan(0);
+  });
+
+  test("reports project config issues for unknown references and stale overrides", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+    const projectDir = join(fixture.root, "project");
+    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    await mkdir(dirname(projectConfigPath), { recursive: true });
+    await writeFile(
+      projectConfigPath,
+      JSON.stringify(
+        {
+          version: 1,
+          servers: {
+            missingServer: { enabled: true },
+            "parallel-search": { enabled: false },
+          },
+          skills: {
+            include: ["missing-skill"],
+          },
+          targets: {
+            codex: { enabled: true },
+          },
+        },
+        null,
+        2,
+      ),
+    );
+
+    const result = await runAgentsCli(["doctor"], {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    }, projectDir);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Project config issues");
+    expect(result.stdout).toContain("missingServer");
+    expect(result.stdout).toContain("missing-skill");
+    expect(result.stdout).toContain("parallel-search");
   });
 });
