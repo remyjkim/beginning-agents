@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document explains the implemented package-backed skill bundle model in `beginning-agents`.
+This document explains the implemented package-backed skill bundle model in `beginning-harness`.
 
 Use it for:
 
@@ -19,7 +19,7 @@ In this model:
 
 - npm is the distribution and versioning layer
 - the bundle provides skill files plus metadata
-- `bgng` remains the only supported control plane for curation and sync
+- `bgng` remains the only supported local meta-harness control plane for curation and sync
 
 Bundles are extension sources. They do not replace the built-in first-party skill tree in the repo.
 
@@ -107,7 +107,7 @@ npm pack <spec> --ignore-scripts --json --pack-destination <tmp>
 
 Why this path:
 
-- it avoids relying on `node_modules` as the canonical source
+- it avoids relying on `node_modules` as the authoritative source
 - it avoids install-time lifecycle mutation
 - it keeps bundles content-oriented and inspectable
 
@@ -175,21 +175,22 @@ Typical flow:
 ```bash
 bgng skills packages add <bundle>
 bgng skills packages show <package-name>
-bgng skills curate <skill-name>
-bgng skills sync
+bgng add skill <skill-name>
+bgng apply
 ```
 
 Important distinction:
 
 - available: the bundle exists in `~/.agents/packages/skills`
-- curated: a shared skill is linked into `~/.agents/skills`
+- default: a shared skill is listed in `~/.agents/bgng/config.json` under `defaults.skills`
+- compatibility publication: a default or curated shared skill is linked into `~/.agents/skills`
 - synced: downstream tool symlinks exist in `~/.claude/skills` and `~/.codex/skills`
 
 ## Current Constraints
 
 ### Shared-skill curation only
 
-Only shared skills can be curated into `~/.agents/skills`.
+Only shared skills can be made global defaults or curated into `~/.agents/skills`.
 
 ### Unique skill names assumed
 
@@ -213,11 +214,11 @@ Deferred:
 - update
 - remove
 
-### Project include does not yet resolve package-backed skills
+### Project include supports package-backed skills
 
-General curation supports built-in shared skills and package-backed shared skills.
+Per-project `skills.include` supports both repo-native shared skills and installed package-backed shared skills.
 
-Per-project `skills.include` currently resolves repo-native skills only.
+Keep package-backed skill names unique. If a project include references an unknown or ambiguous skill name, `bgng doctor` reports it and apply/sync will not silently pick an arbitrary source.
 
 ## How Bundles Relate To Built-In Skills
 
@@ -227,7 +228,7 @@ That means:
 
 - the repo is still the default first-party source
 - bundles are additive extension sources
-- `beginning-agents` remains a single default first-party package
+- `beginning-harness` remains a single first-party harness package
 
 This is intentional. The project is not splitting first-party skills into separate packages by default.
 
@@ -255,11 +256,11 @@ bgng skills list --json
 Current bundle support does not mean:
 
 - bundle CLIs are the supported sync surface
-- npm install locations are the canonical source
+- npm install locations are the authoritative source
 - arbitrary public npm packages are automatically trusted
 - install-time scripts are part of the intended workflow
 
-`bgng` remains the control plane.
+`bgng` remains the local harness control plane.
 
 ## Relationship To Other Docs
 

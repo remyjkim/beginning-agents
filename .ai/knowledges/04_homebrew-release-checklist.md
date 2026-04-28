@@ -5,7 +5,7 @@ This checklist is future-facing. Homebrew distribution is not implemented yet, b
 ## Naming
 
 - package name finalization
-- current package name: `beginning-agents`
+- current package name: `beginning-harness`
 - finalize the public package/repository name
 - current CLI binary name: `bgng`
 - ensure there is no naming collision with existing formulae or packages
@@ -65,7 +65,7 @@ After a future Homebrew install, verify:
 ## Publish-Adjacent Requirements
 
 - package metadata finalized
-- package metadata currently uses `beginning-agents`
+- package metadata currently uses `beginning-harness`
 - repository metadata finalized
 - license finalized
 - docs updated to include Homebrew usage once implementation exists

@@ -2,9 +2,11 @@
 
 ## Purpose
 
-This document records the publishing failure analysis for `beginning-agents` and the correct manual publishing workflow that was verified to work.
+This document records the publishing failure analysis from the first npm publishing path and the correct manual publishing workflow that was verified to work.
 
 It exists to prevent repeated confusion around npm token precedence, 2FA behavior, and local machine config leakage.
+
+The current package name is `beginning-harness`. Earlier notes may refer to `beginning-agents` because that was the package name during the first publishing attempt.
 
 ## Outcome
 
@@ -109,7 +111,7 @@ Use this exact flow for manual npm publishing from this repo.
 ### 1. Move to the repo
 
 ```bash
-cd /path/to/beginning-agents
+cd /path/to/beginning-harness
 ```
 
 ### 2. Load the token from `.env`
@@ -170,7 +172,7 @@ rm -f "$TMP_NPMRC"
 If you want a more explicit manual checklist, use this:
 
 ```bash
-cd /path/to/beginning-agents
+cd /path/to/beginning-harness
 
 set -a
 source .env
