@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Establish a small corpus of real npm packages that are analogous to the proposed package-backed skill bundle model for `beginning-agents`.
+Establish a small corpus of real npm packages that are analogous to the proposed package-backed skill bundle model for `beginning-harness`.
 
 The goal is not to find a standard npm “skills package” type. It is to study the package patterns that matter:
 
@@ -46,7 +46,7 @@ The corpus clearly splits into:
 - runtime plugins
 - CLI/template shippers
 
-This reinforces that `beginning-agents` must define its own bundle contract instead of relying on an npm-native category.
+This reinforces that `beginning-harness` must define its own bundle contract instead of relying on an npm-native category.
 
 ### 2. The most relevant analogies are not runtime plugins
 
@@ -83,7 +83,7 @@ They are useful mostly as anti-pattern references.
 
 This strongly supports the idea that package-backed skill bundles do not need their own CLI or heavy runtime layer.
 
-## Conclusions For `beginning-agents`
+## Conclusions For `beginning-harness`
 
 The best-supported reference patterns are:
 
@@ -93,6 +93,6 @@ The best-supported reference patterns are:
 
 That supports the architecture in which:
 
-- `beginning-agents` remains the operator and control plane
+- `beginning-harness` remains the operator and local harness control plane
 - extension bundles are content-first npm packages
 - package CLIs, if present, are auxiliary only

@@ -4,7 +4,7 @@
 
 **Status:** Approved
 
-**Scope:** Add Parallel to the canonical `agents-config-saam` system with CLI-backed skills as the default local coding-agent path and globally opt-in MCP support as an overlay.
+**Scope:** Add Parallel to the `beginning-harness` system with CLI-backed skills as the default local coding-agent path and globally opt-in MCP support as an overlay.
 
 ## Goal
 
@@ -209,6 +209,6 @@ This design does not require:
 After implementation:
 
 - Codex and Claude Code will have Parallel available by default through synced skills that use `parallel-cli`
-- the canonical repo will also contain Parallel MCP definitions
+- the harness source will also contain Parallel MCP definitions
 - a single global toggle will control whether those MCP entries are added to local tool configs
 - the repo will remain the authoritative inventory for both integration modes

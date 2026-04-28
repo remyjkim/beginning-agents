@@ -6,7 +6,7 @@ Translate the npm facts, reference package corpus, and tarball observations into
 
 ## Primary Conclusion
 
-The package-backed skill model is viable, but only if `beginning-agents` defines an explicit bundle contract instead of trying to infer a “skills package” from generic npm package behavior.
+The package-backed skill model is viable, but only if `beginning-harness` defines an explicit bundle contract instead of trying to infer a “skills package” from generic npm package behavior.
 
 ## Recommended v1 Contract
 

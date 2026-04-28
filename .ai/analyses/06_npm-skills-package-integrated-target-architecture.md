@@ -2,7 +2,7 @@
 
 ## Scope
 
-Define a revised target architecture for integrating npm-distributed skill bundles with `beginning-agents` and the `bgng` CLI.
+Define a revised target architecture for integrating npm-distributed skill bundles with `beginning-harness` and the `bgng` CLI.
 
 This revision removes prior ambiguity and locks the core architectural choices needed to make package-backed skills practical, inspectable, and safe.
 
@@ -13,14 +13,14 @@ Npm does not provide a first-class “skills package” type. It provides a flex
 The correct design is therefore:
 
 - use ordinary npm packages as the transport and versioning layer
-- define an explicit `beginning-agents` skill bundle contract on top of that
-- keep `beginning-agents` as the control plane
+- define an explicit `beginning-harness` skill bundle contract on top of that
+- keep `beginning-harness` as the local harness control plane
 - keep `bgng` as the ingestion, curation, sync, and diagnostics CLI
 
 This document makes the following decisions explicit:
 
-1. `beginning-agents` remains the control plane
-2. `beginning-agents` remains the default first-party package for both control-plane code and built-in first-party skills
+1. `beginning-harness` remains the local harness control plane
+2. `beginning-harness` remains the default first-party package for both control-plane code and built-in first-party skills
 3. npm skill bundles are an extension mechanism, not the required primary packaging model
 3. `bundle.json` is mandatory for first-class support
 4. package-backed skill sources are stored under `~/.agents/packages/skills/...`
@@ -41,7 +41,7 @@ It becomes limited when:
 
 At the same time, the existing architecture already has strong local-state concepts:
 
-- canonical source content
+- baseline source content
 - curated publication layer
 - derived downstream tool state
 
@@ -49,12 +49,12 @@ The right design should extend those concepts rather than replace them.
 
 ## Current Roles
 
-## `beginning-agents`
+## `beginning-harness`
 
-`beginning-agents` currently owns:
+`beginning-harness` currently owns:
 
-- canonical skill source
-- canonical MCP registry
+- baseline skill source
+- packaged MCP registry
 - curation workflow
 - sync workflow
 - diagnostics and status
@@ -79,11 +79,11 @@ It should not own:
 
 The governing principle is:
 
-> `beginning-agents` is the first-party control plane and default first-party skill distribution. Npm skill bundles are optional content extensions.
+> `beginning-harness` is the first-party local harness control plane and default first-party skill distribution. Npm skill bundles are optional content extensions.
 
 This means:
 
-- `beginning-agents` ships the baseline first-party experience
+- `beginning-harness` ships the baseline first-party experience
 - packages can provide additional skill content
 - `bgng` ingests package content into local managed state
 - curation remains explicit and local
@@ -91,11 +91,11 @@ This means:
 
 ## Final Role Split
 
-### `beginning-agents`
+### `beginning-harness`
 
 Should remain responsible for:
 
-- canonical local-state model
+- local harness state model
 - built-in first-party skills
 - skill source registry
 - curation
@@ -123,7 +123,7 @@ The target system has five layers.
 The repo itself continues to ship:
 
 - first-party skills
-- canonical MCP registry
+- packaged MCP registry
 - CLI code
 - sync and diagnostics logic
 
@@ -245,8 +245,8 @@ Recommended baseline:
 ```json
 {
   "schemaVersion": 1,
-  "bundleName": "@beginning-agents/skills-core",
-  "displayName": "Beginning Agents Core Skills",
+  "bundleName": "@acme/skills-core",
+  "displayName": "Example Core Skills",
   "description": "Core reusable skill bundle for local coding agents.",
   "version": "1.2.0",
   "skills": [
@@ -340,7 +340,7 @@ Curated symlinks may point to:
 Example package-backed curated target:
 
 ```text
-~/.agents/packages/skills/@beginning-agents/skills-core/1.2.0/skills/shared/systematic-debugging
+~/.agents/packages/skills/@acme/skills-core/1.2.0/skills/shared/systematic-debugging
 ```
 
 Downstream tools do not need to know the source type.
@@ -437,7 +437,7 @@ This provides one unified inventory view.
 
 There are two version axes:
 
-1. `beginning-agents` / `bgng`
+1. `beginning-harness` / `bgng`
 2. each npm extension skill bundle
 
 ### Final compatibility model
@@ -489,11 +489,11 @@ These are desirable later, but not required for first implementation:
 - allowlists for first-party or approved bundle sources
 - signed or policy-verified bundle ingestion
 
-## What `beginning-agents` Must Not Do
+## What `beginning-harness` Must Not Do
 
 To keep the architecture coherent, do not:
 
-1. rely on npm global install directories as canonical skill source
+1. rely on npm global install directories as authoritative skill source
 2. let bundles write directly into downstream agent directories
 3. auto-curate skills on install
 4. embed target sync logic into skill bundles
@@ -554,7 +554,7 @@ The next layer after that is:
 
 The default package strategy is:
 
-- one primary first-party package: `beginning-agents`
+- one primary first-party package: `beginning-harness`
 - built-in first-party skills continue to ship inside that package
 - npm skill bundles are optional extension sources
 
@@ -569,14 +569,14 @@ If a first-party split ever happens, it should happen only because of concrete o
 
 Until then, the simplest and preferred model is:
 
-- `beginning-agents` ships control-plane code and first-party skills together
+- `beginning-harness` ships control-plane code and first-party skills together
 - package-backed bundles extend the system rather than define the baseline
 
 ## Final Recommendation
 
 The revised target architecture is:
 
-- `beginning-agents` remains the local control plane and default first-party package
+- `beginning-harness` remains the local harness control plane and default first-party package
 - npm packages are used as the distribution layer for optional modular skill bundles
 - `bundle.json` is mandatory
 - package-backed sources are cached under `~/.agents/packages/skills/...`

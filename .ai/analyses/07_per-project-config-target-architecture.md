@@ -2,7 +2,7 @@
 
 ## Scope
 
-Define the architecture for per-project configuration overrides in `beginning-agents` so that different project directories can customize which MCP servers, skills, and targets are active while the central `~/.agents` remains the canonical content container.
+Define the architecture for per-project configuration overrides in `beginning-harness` so that different project directories can customize which MCP servers, skills, and targets are active while the central `~/.agents` remains the shared harness content container.
 
 ## Executive Summary
 
