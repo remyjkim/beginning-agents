@@ -116,7 +116,7 @@ async function findPackageSkill(agentsDir: string, name: string): Promise<RepoSk
   return null;
 }
 
-async function findAvailableSkill(repoRoot: string, agentsDir: string, name: string): Promise<RepoSkill | null> {
+export async function findAvailableSkill(repoRoot: string, agentsDir: string, name: string): Promise<RepoSkill | null> {
   return (await findRepoSkill(repoRoot, name)) ?? (await findPackageSkill(agentsDir, name));
 }
 
@@ -251,7 +251,7 @@ export async function syncSkills(options: NormalizedSyncOptions, overrides?: Ski
     (overrides?.include ?? [])
       .filter((name) => !excluded.has(name))
       .map(async (name) => {
-        const skill = await findRepoSkill(options.repoRoot, name);
+        const skill = await findAvailableSkill(options.repoRoot, options.agentsDir, name);
         if (!skill) {
           result.warnings.push(`unknown skill override include: ${name}`);
           return null;

@@ -1,4 +1,4 @@
-// ABOUTME: Provides the typed Clipanion base command class for the agents CLI.
+// ABOUTME: Provides the typed Clipanion base command class for the bgng harness CLI.
 // ABOUTME: Ensures commands share the same resolved AgentsContext shape.
 
 import { Command } from "clipanion";

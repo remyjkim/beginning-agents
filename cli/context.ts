@@ -34,6 +34,6 @@ export function createAgentsContext(): Omit<AgentsContext, keyof BaseContext> {
 
 export function validateRepoRoot(repoRoot: string) {
   if (!existsSync(join(repoRoot, "config.json"))) {
-    throw new Error(`No config.json found at ${repoRoot}. Run bgng from a canonical repo checkout or set AGENTS_REPO_ROOT.`);
+    throw new Error(`No config.json found at ${repoRoot}. Run bgng from a beginning-harness checkout or set AGENTS_REPO_ROOT.`);
   }
 }

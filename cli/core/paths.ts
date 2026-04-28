@@ -1,4 +1,4 @@
-// ABOUTME: Provides shared path resolution helpers for the agents CLI and sync wrapper.
+// ABOUTME: Provides shared path resolution helpers for the bgng harness CLI and sync wrapper.
 // ABOUTME: Normalizes repo, home, tool, and skill-scope paths without command-layer dependencies.
 
 import { realpathSync } from "node:fs";
@@ -12,6 +12,22 @@ export function inferRepoRootFromModulePath(modulePath: string) {
 
 export function resolveAgentsDir(homeDir: string) {
   return join(homeDir, ".agents");
+}
+
+export function resolveUserBgngDir(agentsDir: string) {
+  return join(agentsDir, "bgng");
+}
+
+export function resolveUserConfigPath(agentsDir: string) {
+  return join(resolveUserBgngDir(agentsDir), "config.json");
+}
+
+export function resolveLibraryDir(agentsDir: string) {
+  return join(agentsDir, "library");
+}
+
+export function resolveMcpLibraryPath(agentsDir: string) {
+  return join(resolveLibraryDir(agentsDir), "mcp-servers.json");
 }
 
 export function expandHomePath(pathValue: string, homeDir: string) {

@@ -156,6 +156,86 @@ describe("core project", () => {
     });
   });
 
+  test("mergeProjectConfig derives Parallel extension skills and MCP from project config", async () => {
+    const config = createFixtureConfig({
+      claudeSettings: "/tmp/.claude/settings.json",
+      codexConfig: "/tmp/.codex/config.toml",
+      cursorConfig: "/tmp/.cursor/mcp.json",
+    });
+    config.parallel!.mcp!.enabled = false;
+    const registry = createFixtureRegistry();
+
+    const { mergeProjectConfig } = await import("../cli/core/project");
+    const merged = mergeProjectConfig(config, registry, {
+      version: 1,
+      extensions: {
+        parallel: { enabled: true, skills: true, mcp: true },
+      },
+    });
+
+    expect(merged.config.parallel?.cli?.enabled).toBe(true);
+    expect(merged.config.parallel?.mcp?.enabled).toBe(true);
+    expect(merged.skills?.include).toEqual([
+      "parallel-web-search",
+      "parallel-web-extract",
+      "parallel-deep-research",
+      "parallel-data-enrichment",
+    ]);
+    expect(config.parallel?.mcp?.enabled).toBe(false);
+  });
+
+  test("mergeProjectConfig can disable Parallel for one project", async () => {
+    const config = createFixtureConfig({
+      claudeSettings: "/tmp/.claude/settings.json",
+      codexConfig: "/tmp/.codex/config.toml",
+      cursorConfig: "/tmp/.cursor/mcp.json",
+    }, true);
+    const registry = createFixtureRegistry();
+
+    const { mergeProjectConfig } = await import("../cli/core/project");
+    const merged = mergeProjectConfig(config, registry, {
+      version: 1,
+      extensions: {
+        parallel: { enabled: false },
+      },
+    });
+
+    expect(merged.config.parallel?.cli?.enabled).toBe(false);
+    expect(merged.config.parallel?.mcp?.enabled).toBe(false);
+    expect(merged.skills?.exclude).toEqual([
+      "parallel-web-search",
+      "parallel-web-extract",
+      "parallel-deep-research",
+      "parallel-data-enrichment",
+    ]);
+  });
+
+  test("mergeProjectConfig derives Beads includeSkill and lets explicit excludes win", async () => {
+    const config = createFixtureConfig({
+      claudeSettings: "/tmp/.claude/settings.json",
+      codexConfig: "/tmp/.codex/config.toml",
+      cursorConfig: "/tmp/.cursor/mcp.json",
+    });
+    const registry = createFixtureRegistry();
+
+    const { mergeProjectConfig } = await import("../cli/core/project");
+    const merged = mergeProjectConfig(config, registry, {
+      version: 1,
+      extensions: {
+        beads: { enabled: true, includeSkill: true },
+        parallel: { enabled: true },
+      },
+      skills: {
+        exclude: ["parallel-web-extract"],
+      },
+    });
+
+    expect(merged.skills?.include).toContain("beads-task-tracking");
+    expect(merged.skills?.include).toContain("parallel-web-search");
+    expect(merged.skills?.include).not.toContain("parallel-web-extract");
+    expect(merged.skills?.exclude).toContain("parallel-web-extract");
+  });
+
   test("mergeProjectConfig applies target enabled overrides", async () => {
     const config = createFixtureConfig({
       claudeSettings: "/tmp/.claude/settings.json",

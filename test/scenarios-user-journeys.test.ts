@@ -2,6 +2,7 @@
 // ABOUTME: Protects the CLI against regressions in practical user workflows rather than isolated unit behavior alone.
 
 import { afterEach, describe, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
 import { mkdir, rm, writeFile, symlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { cleanupTempRoots, runAgentsCli, runSyncWrapper, scaffoldCliFixture } from "./helpers";
@@ -51,6 +52,14 @@ async function createBundleFixture(root: string, options?: { packageName?: strin
   await writeFile(join(bundleRoot, "README.md"), "# fixture\n");
   await writeFile(join(skillDir, "SKILL.md"), `---\nname: ${skillName}\ndescription: fixture\n---\n`);
   return { bundleRoot, packageName, version, skillName };
+}
+
+async function addParallelSkills(repoRoot: string) {
+  for (const name of ["parallel-web-search", "parallel-web-extract", "parallel-deep-research", "parallel-data-enrichment"]) {
+    const skillDir = join(repoRoot, "skills", "shared", name);
+    await mkdir(skillDir, { recursive: true });
+    await writeFile(join(skillDir, "SKILL.md"), `---\nname: ${name}\ndescription: ${name}\n---\n`);
+  }
 }
 
 describe("user journeys", () => {
@@ -136,7 +145,7 @@ describe("user journeys", () => {
       AGENTS_DIR: fixture.agentsDir,
     };
 
-    let result = await runAgentsCli(["init"], env, projectDir);
+    let result = await runAgentsCli(["init", "--non-interactive"], env, projectDir);
     expect(result.exitCode).toBe(0);
 
     const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
@@ -178,6 +187,47 @@ describe("user journeys", () => {
     result = await runAgentsCli(["doctor"], env, projectDir);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("No issues found");
+  });
+
+  test("per-project user can select Parallel extension and sync its CLI-backed skills", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+    await addParallelSkills(fixture.repoRoot);
+    const projectDir = join(fixture.root, "project");
+    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    await mkdir(dirname(projectConfigPath), { recursive: true });
+    await writeFile(
+      projectConfigPath,
+      JSON.stringify(
+        {
+          version: 1,
+          extensions: {
+            parallel: { enabled: true, skills: true, mcp: false },
+          },
+          skills: {
+            exclude: ["parallel-web-extract"],
+          },
+        },
+        null,
+        2,
+      ),
+    );
+    const env = {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    };
+
+    const dryRun = await runAgentsCli(["sync", "--dry-run"], env, projectDir);
+    expect(dryRun.exitCode).toBe(0);
+    expect(dryRun.stdout).toContain("parallel-web-search");
+    expect(dryRun.stdout).not.toContain("parallel-web-extract");
+
+    const sync = await runAgentsCli(["sync"], env, projectDir);
+    expect(sync.exitCode).toBe(0);
+    expect(existsSync(join(fixture.homeDir, ".claude", "skills", "parallel-web-search"))).toBe(true);
+    expect(existsSync(join(fixture.homeDir, ".codex", "skills", "parallel-web-search"))).toBe(true);
+    expect(existsSync(join(fixture.homeDir, ".claude", "skills", "parallel-web-extract"))).toBe(false);
   });
 
   test("invalid project config references are ignored by sync and surfaced by doctor", async () => {

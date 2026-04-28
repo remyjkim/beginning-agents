@@ -9,6 +9,9 @@ import { loadConfig } from "./config";
 import { loadRegistry } from "./registry";
 import { buildActiveServers, mergeClaudeSettingsText, mergeCodexTomlText, renderCursorConfig } from "./mcp";
 import { syncSkills as syncSkillsCore } from "./skills";
+import { loadEffectiveConfig } from "./user-config";
+import { loadMcpLibrary } from "./mcp-library";
+import { mergeUserMcpLibrary } from "./defaults";
 import { ensureParentDir, lstatSafe, realpathSafe } from "./fs";
 import { findProjectConfig, loadProjectConfig, mergeProjectConfig } from "./project";
 import type {
@@ -118,11 +121,17 @@ export async function syncMcp(
 
 export async function syncRepository(options: SyncOptions = {}): Promise<SyncResult> {
   const normalized = normalizeSyncPathOptions(options, options.repoRoot ? undefined : import.meta.path);
-  const config = await loadConfig(normalized.repoRoot);
-  const registry = await loadRegistry(normalized.repoRoot);
+  const repoConfig = await loadConfig(normalized.repoRoot);
+  const registry = mergeUserMcpLibrary(
+    await loadRegistry(normalized.repoRoot),
+    await loadMcpLibrary(normalized.agentsDir),
+  );
+  const { config } = await loadEffectiveConfig(repoConfig, normalized.agentsDir);
   let effectiveConfig = config;
   let effectiveRegistry = registry;
-  let skillOverrides: ReturnType<typeof mergeProjectConfig>["skills"];
+  let skillOverrides: ReturnType<typeof mergeProjectConfig>["skills"] = config.defaults?.skills
+    ? { include: [...config.defaults.skills] }
+    : undefined;
   const result: SyncResult = { changes: [], warnings: [] };
   const projectConfigPath = findProjectConfig(normalized.cwd ?? process.cwd());
 
@@ -131,7 +140,13 @@ export async function syncRepository(options: SyncOptions = {}): Promise<SyncRes
     const merged = mergeProjectConfig(config, registry, projectConfig);
     effectiveConfig = merged.config;
     effectiveRegistry = merged.registry;
-    skillOverrides = merged.skills;
+    skillOverrides = {
+      include: [
+        ...(config.defaults?.skills ?? []),
+        ...(merged.skills?.include ?? []),
+      ],
+      exclude: merged.skills?.exclude,
+    };
     result.changes.push(`project config: ${projectConfigPath}`);
   }
 

@@ -19,7 +19,7 @@ describe("bgng init", () => {
     const projectDir = join(fixture.root, "project");
     await mkdir(projectDir, { recursive: true });
 
-    const result = await runAgentsCli(["init"], {
+    const result = await runAgentsCli(["init", "--non-interactive"], {
       AGENTS_REPO_ROOT: fixture.repoRoot,
       AGENTS_HOME_DIR: fixture.homeDir,
       AGENTS_DIR: fixture.agentsDir,
@@ -38,7 +38,7 @@ describe("bgng init", () => {
     await mkdir(dirname(configPath), { recursive: true });
     await writeFile(configPath, JSON.stringify({ version: 1, skills: { include: ["alpha"] } }, null, 2));
 
-    const result = await runAgentsCli(["init"], {
+    const result = await runAgentsCli(["init", "--non-interactive"], {
       AGENTS_REPO_ROOT: fixture.repoRoot,
       AGENTS_HOME_DIR: fixture.homeDir,
       AGENTS_DIR: fixture.agentsDir,
@@ -56,7 +56,7 @@ describe("bgng init", () => {
     await mkdir(dirname(configPath), { recursive: true });
     await writeFile(configPath, JSON.stringify({ version: 1, skills: { include: ["alpha"] } }, null, 2));
 
-    const result = await runAgentsCli(["init", "--force"], {
+    const result = await runAgentsCli(["init", "--non-interactive", "--force"], {
       AGENTS_REPO_ROOT: fixture.repoRoot,
       AGENTS_HOME_DIR: fixture.homeDir,
       AGENTS_DIR: fixture.agentsDir,
@@ -73,7 +73,7 @@ describe("bgng init", () => {
     await mkdir(projectDir, { recursive: true });
     await writeFile(join(projectDir, ".gitignore"), ".agents/\n");
 
-    const result = await runAgentsCli(["init"], {
+    const result = await runAgentsCli(["init", "--non-interactive"], {
       AGENTS_REPO_ROOT: fixture.repoRoot,
       AGENTS_HOME_DIR: fixture.homeDir,
       AGENTS_DIR: fixture.agentsDir,
@@ -82,5 +82,37 @@ describe("bgng init", () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Warning");
     expect(result.stdout).toContain(".agents");
+  });
+
+  test("bare init in non-TTY mode fails with explicit non-interactive guidance", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+    const projectDir = join(fixture.root, "project");
+    await mkdir(projectDir, { recursive: true });
+
+    const result = await runAgentsCli(["init"], {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    }, projectDir);
+
+    expect(result.exitCode).not.toBe(0);
+    expect(`${result.stdout}\n${result.stderr}`).toContain("--non-interactive");
+  });
+
+  test("guided init in non-TTY mode fails with TTY guidance", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+    const projectDir = join(fixture.root, "project");
+    await mkdir(projectDir, { recursive: true });
+
+    const result = await runAgentsCli(["init", "--guided"], {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    }, projectDir);
+
+    expect(result.exitCode).not.toBe(0);
+    expect(`${result.stdout}\n${result.stderr}`).toContain("TTY");
   });
 });

@@ -1,8 +1,9 @@
-// ABOUTME: Verifies the public `agents mcp list` and `agents mcp sync` command surfaces.
-// ABOUTME: Protects canonical MCP listing and sync behavior while the CLI replaces ad hoc script usage.
+// ABOUTME: Verifies the public `bgng mcp list` and `bgng mcp sync` command surfaces.
+// ABOUTME: Protects harness MCP listing and sync behavior while the CLI replaces ad hoc script usage.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { cleanupTempRoots, runAgentsCli, scaffoldCliFixture } from "./helpers";
 
 const tempRoots: string[] = [];
@@ -11,8 +12,8 @@ afterEach(async () => {
   await cleanupTempRoots(tempRoots);
 });
 
-describe("agents mcp", () => {
-  test("list shows canonical servers and active state", async () => {
+describe("bgng mcp", () => {
+  test("list shows harness servers and active state", async () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
 
@@ -42,6 +43,28 @@ describe("agents mcp", () => {
     expect(parsed.some((server) => server.name === "parallel-search" && server.active)).toBe(true);
   });
 
+  test("list applies project extension MCP state", async () => {
+    const fixture = await scaffoldCliFixture({ parallelMcpEnabled: false });
+    tempRoots.push(fixture.root);
+    const projectDir = join(fixture.root, "project");
+    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    await mkdir(dirname(projectConfigPath), { recursive: true });
+    await writeFile(
+      projectConfigPath,
+      JSON.stringify({ version: 1, extensions: { parallel: { enabled: true, skills: true, mcp: true } } }, null, 2),
+    );
+
+    const result = await runAgentsCli(["mcp", "list", "--json"], {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    }, projectDir);
+
+    expect(result.exitCode).toBe(0);
+    const parsed = JSON.parse(result.stdout) as Array<{ name: string; active: boolean }>;
+    expect(parsed.some((server) => server.name === "parallel-search" && server.active)).toBe(true);
+  });
+
   test("sync --dry-run reports changes without mutating target files", async () => {
     const fixture = await scaffoldCliFixture({ parallelMcpEnabled: true });
     tempRoots.push(fixture.root);
@@ -56,6 +79,60 @@ describe("agents mcp", () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Changes:");
     expect(await readFile(fixture.claudeSettings, "utf8")).toBe(before);
+  });
+
+  test("apply --dry-run reports MCP changes without mutating target files", async () => {
+    const fixture = await scaffoldCliFixture({ parallelMcpEnabled: true });
+    tempRoots.push(fixture.root);
+    const before = await readFile(fixture.claudeSettings, "utf8");
+
+    const result = await runAgentsCli(["mcp", "apply", "--dry-run"], {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Changes:");
+    expect(await readFile(fixture.claudeSettings, "utf8")).toBe(before);
+  });
+
+  test("apply supports --json output", async () => {
+    const fixture = await scaffoldCliFixture({ parallelMcpEnabled: true });
+    tempRoots.push(fixture.root);
+
+    const result = await runAgentsCli(["mcp", "apply", "--dry-run", "--json"], {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(() => JSON.parse(result.stdout)).not.toThrow();
+  });
+
+  test("sync applies project extension MCP state", async () => {
+    const fixture = await scaffoldCliFixture({ parallelMcpEnabled: false });
+    tempRoots.push(fixture.root);
+    const projectDir = join(fixture.root, "project");
+    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    await mkdir(dirname(projectConfigPath), { recursive: true });
+    await writeFile(
+      projectConfigPath,
+      JSON.stringify({ version: 1, extensions: { parallel: { enabled: true, skills: true, mcp: true } } }, null, 2),
+    );
+
+    const result = await runAgentsCli(["mcp", "sync"], {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    }, projectDir);
+
+    expect(result.exitCode).toBe(0);
+    const claudeSettings = JSON.parse(await readFile(fixture.claudeSettings, "utf8")) as {
+      mcpServers: Record<string, unknown>;
+    };
+    expect(claudeSettings.mcpServers["parallel-search"]).toBeDefined();
   });
 
   test("sync --target=claude limits output scope", async () => {
@@ -88,5 +165,36 @@ describe("agents mcp", () => {
     const inactive = parsed.find((server) => !server.active);
     expect(inactive).toBeDefined();
     expect(inactive!.targets).toBe("");
+  });
+
+  test("list uses user global defaults and MCP library entries", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+    const { saveMcpLibrary } = await import("../cli/core/mcp-library");
+    await saveMcpLibrary(fixture.agentsDir, {
+      version: 1,
+      servers: {
+        github: {
+          description: "GitHub",
+          transport: "stdio",
+          command: "npx",
+          optional: true,
+        },
+      },
+    });
+    const config = JSON.parse(await readFile(join(fixture.repoRoot, "config.json"), "utf8"));
+    config.defaults = { mcpServers: ["github"] };
+    await mkdir(join(fixture.agentsDir, "bgng"), { recursive: true });
+    await writeFile(join(fixture.agentsDir, "bgng", "config.json"), JSON.stringify(config, null, 2));
+
+    const result = await runAgentsCli(["mcp", "list", "--json"], {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    });
+
+    expect(result.exitCode).toBe(0);
+    const parsed = JSON.parse(result.stdout) as Array<{ name: string; active: boolean }>;
+    expect(parsed.some((item) => item.name === "github" && item.active)).toBe(true);
   });
 });

@@ -1,5 +1,5 @@
-// ABOUTME: Defines the shared domain types used by the agents CLI core and compatibility wrapper.
-// ABOUTME: Centralizes canonical registry, config, target, and sync result types to avoid drift.
+// ABOUTME: Defines the shared domain types used by the bgng harness CLI core and compatibility wrapper.
+// ABOUTME: Centralizes registry, config, target, and sync result types to avoid drift.
 
 export type Transport = "stdio" | "http" | "sse" | "platform-provided";
 export type TargetName = "claude" | "codex" | "cursor";
@@ -23,6 +23,11 @@ export interface CanonicalRegistry {
   servers: Record<string, RegistryServer>;
 }
 
+export interface UserMcpLibrary {
+  version: number;
+  servers: Record<string, RegistryServer>;
+}
+
 export interface TargetConfig {
   enabled: boolean;
   configPath: string;
@@ -34,6 +39,24 @@ export interface TargetConfig {
 export interface CanonicalConfig {
   version: number;
   targets: Record<TargetName, TargetConfig>;
+  defaults?: {
+    skills?: string[];
+    mcpServers?: string[];
+    extensions?: Record<string, ProjectExtensionConfig>;
+  };
+  catalogs?: {
+    npmSkills?: {
+      enabled: boolean;
+      searchLimit?: number;
+    };
+    mcp?: {
+      enabled: boolean;
+      sources?: Array<
+        | { type: "file"; path: string }
+        | { type: "url"; url: string }
+      >;
+    };
+  };
   parallel?: {
     cli?: {
       enabled: boolean;
@@ -49,6 +72,15 @@ export type ServerOverride =
   | { enabled: boolean }
   | RegistryServer;
 
+export type ProjectExtensionConfig = {
+  enabled?: boolean;
+  skills?: boolean;
+  mcp?: boolean;
+  targets?: string[];
+  includeSkill?: boolean;
+  [key: string]: unknown;
+};
+
 export interface ProjectConfig {
   version: number;
   servers?: Record<string, ServerOverride>;
@@ -56,6 +88,7 @@ export interface ProjectConfig {
     include?: string[];
     exclude?: string[];
   };
+  extensions?: Record<string, ProjectExtensionConfig>;
   targets?: Partial<Record<TargetName, { enabled: boolean }>>;
 }
 

@@ -2,6 +2,7 @@
 // ABOUTME: Centralizes CLI spawning with environment overrides so tests never touch the real machine state.
 
 import { mkdtemp, mkdir, writeFile, rm, symlink } from "node:fs/promises";
+import { chmod } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type { CanonicalConfig, CanonicalRegistry } from "../cli/core/types";
@@ -49,6 +50,10 @@ export function createFixtureConfig(
       claude: { enabled: true, configPath: paths.claudeSettings, format: "json-merge", mcpKey: "mcpServers" },
       codex: { enabled: true, configPath: paths.codexConfig, format: "toml-merge", mcpKey: "mcp_servers" },
       cursor: { enabled: true, configPath: paths.cursorConfig, format: "json-standalone", mcpKey: "mcpServers", symlink: true },
+    },
+    catalogs: {
+      npmSkills: { enabled: true, searchLimit: 20 },
+      mcp: { enabled: false, sources: [] },
     },
     optional: {},
     parallel: { cli: { enabled: true }, mcp: { enabled: parallelMcpEnabled } },
@@ -99,9 +104,97 @@ export async function scaffoldCliFixture(options?: { parallelMcpEnabled?: boolea
   return { root, repoRoot, homeDir, agentsDir, claudeSettings, codexConfig, cursorConfig };
 }
 
+export async function createInstalledSkillBundle(
+  agentsDir: string,
+  options?: {
+    packageName?: string;
+    version?: string;
+    skillName?: string;
+    scope?: "shared" | "claude-only" | "codex-only" | "experimental";
+  },
+) {
+  const packageName = options?.packageName ?? "@acme/skills-sample";
+  const version = options?.version ?? "1.0.0";
+  const skillName = options?.skillName ?? "hello-skill";
+  const scope = options?.scope ?? "shared";
+  const packageRoot = join(agentsDir, "packages", "skills", ...packageName.split("/"), version);
+  const skillDir = join(packageRoot, "skills", scope, skillName);
+
+  await mkdir(skillDir, { recursive: true });
+  await writeFile(join(skillDir, "SKILL.md"), `---\nname: ${skillName}\ndescription: ${skillName}\n---\n`);
+  await writeFile(
+    join(packageRoot, "bundle.json"),
+    JSON.stringify(
+      {
+        schemaVersion: 1,
+        bundleName: packageName,
+        version,
+        skills: [{ name: skillName, scope, path: `skills/${scope}/${skillName}` }],
+      },
+      null,
+      2,
+    ),
+  );
+  await symlink(version, join(dirname(packageRoot), "current"), "dir");
+
+  return { packageName, version, skillName, scope, packageRoot, skillDir };
+}
+
+export async function createSkillBundleFixture(
+  root: string,
+  options?: { packageName?: string; version?: string; skillName?: string },
+) {
+  const packageName = options?.packageName ?? "@acme/skills-sample";
+  const version = options?.version ?? "1.0.0";
+  const skillName = options?.skillName ?? "hello-skill";
+  const bundleRoot = join(root, "bundle");
+  const skillDir = join(bundleRoot, "skills", "shared", skillName);
+
+  await mkdir(skillDir, { recursive: true });
+  await writeFile(
+    join(bundleRoot, "package.json"),
+    JSON.stringify(
+      {
+        name: packageName,
+        version,
+        description: "fixture",
+        license: "MIT",
+        files: ["skills", "bundle.json", "README.md"],
+      },
+      null,
+      2,
+    ),
+  );
+  await writeFile(
+    join(bundleRoot, "bundle.json"),
+    JSON.stringify(
+      {
+        schemaVersion: 1,
+        bundleName: packageName,
+        version,
+        displayName: "Sample Skills",
+        skills: [{ name: skillName, scope: "shared", path: `skills/shared/${skillName}` }],
+      },
+      null,
+      2,
+    ),
+  );
+  await writeFile(join(bundleRoot, "README.md"), "# fixture\n");
+  await writeFile(join(skillDir, "SKILL.md"), `---\nname: ${skillName}\ndescription: fixture\n---\n`);
+  return { bundleRoot, packageName, version, skillName };
+}
+
+export async function createExecutable(dir: string, name: string, body: string) {
+  await mkdir(dir, { recursive: true });
+  const path = join(dir, name);
+  await writeFile(path, `#!/bin/sh\n${body}\n`);
+  await chmod(path, 0o755);
+  return path;
+}
+
 export async function runAgentsCli(args: string[], env: Record<string, string>, cwd?: string) {
   const entrypoint = new URL("../cli/index.ts", import.meta.url).pathname;
-  const proc = Bun.spawn(["bun", "run", entrypoint, ...args], {
+  const proc = Bun.spawn([process.execPath, "run", entrypoint, ...args], {
     cwd: cwd ?? join(import.meta.dir, ".."),
     stdout: "pipe",
     stderr: "pipe",

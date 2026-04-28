@@ -24,7 +24,7 @@ afterEach(async () => {
 });
 
 async function createTempRoot() {
-  const root = await mkdtemp(join(tmpdir(), "agents-config-saam-"));
+  const root = await mkdtemp(join(tmpdir(), "beginning-harness-"));
   tempRoots.push(root);
   return root;
 }
@@ -148,7 +148,7 @@ describe("buildActiveServers", () => {
     expect(Object.keys(active)).toEqual(["context7", "parallel-search", "parallel-task"]);
   });
 
-  test("real canonical registry includes Parallel MCP entries when globally enabled", async () => {
+  test("real packaged registry includes Parallel MCP entries when globally enabled", async () => {
     const registry = JSON.parse(
       await readFile(join(import.meta.dir, "..", "mcp-servers.json"), "utf8"),
     ) as CanonicalRegistry;
@@ -403,7 +403,7 @@ describe("syncRepository", () => {
     expect(await readFile(cursorConfigPath, "utf8")).toBe(beforeCursor);
   });
 
-  test("skills sync creates downstream symlink chains from curated agents skills", async () => {
+  test("skills sync creates downstream symlink chains from curated shared skills", async () => {
     const root = await createTempRoot();
     const homeDir = join(root, "home");
     const repoRoot = join(root, "repo");

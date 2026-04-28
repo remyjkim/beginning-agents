@@ -1,10 +1,11 @@
-// ABOUTME: Verifies the top-level `agents sync` convenience command for full sync workflows.
+// ABOUTME: Verifies the top-level `bgng sync` convenience command for full sync workflows.
 // ABOUTME: Protects migration behavior from the legacy sync-mcp wrapper into the new CLI surface.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { cleanupTempRoots, runAgentsCli, scaffoldCliFixture } from "./helpers";
+import { createInstalledSkillBundle } from "./helpers";
 
 const tempRoots: string[] = [];
 
@@ -12,7 +13,7 @@ afterEach(async () => {
   await cleanupTempRoots(tempRoots);
 });
 
-describe("agents sync", () => {
+describe("bgng sync", () => {
   test("runs both MCP and skill sync", async () => {
     const fixture = await scaffoldCliFixture({ curatedSkillNames: ["alpha"] });
     tempRoots.push(fixture.root);
@@ -102,5 +103,32 @@ describe("agents sync", () => {
     };
     expect(claudeSettings.mcpServers.context7).toBeUndefined();
     expect(claudeSettings.mcpServers.localdb).toBeDefined();
+  });
+
+  test("applies package-backed project skill includes without global curation", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+    await createInstalledSkillBundle(fixture.agentsDir, { skillName: "hello-skill" });
+    const projectDir = join(fixture.root, "project");
+    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    await mkdir(dirname(projectConfigPath), { recursive: true });
+    await writeFile(projectConfigPath, JSON.stringify({ version: 1, skills: { include: ["hello-skill"] } }, null, 2));
+
+    const env = {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    };
+
+    const dryRun = await runAgentsCli(["sync", "--dry-run"], env, projectDir);
+    expect(dryRun.exitCode).toBe(0);
+    expect(dryRun.stdout).toContain("hello-skill");
+
+    const sync = await runAgentsCli(["sync"], env, projectDir);
+    expect(sync.exitCode).toBe(0);
+
+    const doctor = await runAgentsCli(["doctor"], env, projectDir);
+    expect(doctor.exitCode).toBe(0);
+    expect(doctor.stdout).not.toContain("Unknown skill reference");
   });
 });

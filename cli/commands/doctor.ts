@@ -1,4 +1,4 @@
-// ABOUTME: Implements the `agents doctor` command for report-only diagnostics over the current machine state.
+// ABOUTME: Implements the `bgng doctor` command for report-only diagnostics over the current machine state.
 // ABOUTME: Surfaces broken links, stale state, MCP drift, and missing generated files without mutating anything.
 
 import { Option } from "clipanion";

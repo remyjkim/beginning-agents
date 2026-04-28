@@ -1,4 +1,4 @@
-// ABOUTME: Verifies the public `agents doctor` command stays report-only while surfacing drift and stale state.
+// ABOUTME: Verifies the public `bgng doctor` command stays report-only while surfacing drift and stale state.
 // ABOUTME: Protects the safe-by-default diagnostics contract for the new CLI.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -12,7 +12,7 @@ afterEach(async () => {
   await cleanupTempRoots(tempRoots);
 });
 
-describe("agents doctor", () => {
+describe("bgng doctor", () => {
   test("reports stale downstream skill symlinks", async () => {
     const fixture = await scaffoldCliFixture({ curatedSkillNames: ["alpha"] });
     tempRoots.push(fixture.root);
@@ -161,5 +161,25 @@ describe("agents doctor", () => {
     expect(result.stdout).toContain("missingServer");
     expect(result.stdout).toContain("missing-skill");
     expect(result.stdout).toContain("parallel-search");
+  });
+
+  test("reports unknown global default references", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+    const config = JSON.parse(await Bun.file(join(fixture.repoRoot, "config.json")).text());
+    config.defaults = { skills: ["missing-skill"], mcpServers: ["missing-mcp"] };
+    await mkdir(join(fixture.agentsDir, "bgng"), { recursive: true });
+    await writeFile(join(fixture.agentsDir, "bgng", "config.json"), JSON.stringify(config, null, 2));
+
+    const result = await runAgentsCli(["doctor", "--json"], {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    });
+
+    expect(result.exitCode).toBe(0);
+    const parsed = JSON.parse(result.stdout) as { projectConfigIssues: string[] };
+    expect(parsed.projectConfigIssues).toContain('Unknown default skill: "missing-skill"');
+    expect(parsed.projectConfigIssues).toContain('Unknown default MCP server: "missing-mcp"');
   });
 });

@@ -29,6 +29,16 @@
       "enabled": false
     }
   },
+  "catalogs": {
+    "npmSkills": {
+      "enabled": true,
+      "searchLimit": 20
+    },
+    "mcp": {
+      "enabled": false,
+      "sources": []
+    }
+  },
   "optional": {
     "markdownify": false,
     "notion": false,

@@ -1,15 +1,26 @@
 // ABOUTME: Computes report-only diagnostics for skill symlinks, MCP drift, and generated file expectations.
-// ABOUTME: Shared by `agents doctor` and `agents status` to keep reporting logic centralized and testable.
+// ABOUTME: Shared by `bgng doctor` and `bgng status` to keep reporting logic centralized and testable.
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { loadConfig } from "./config";
 import { buildActiveServers, mergeClaudeSettingsText, mergeCodexTomlText, renderCursorConfig } from "./mcp";
+import { mergeUserMcpLibrary, validateDefaultReferences } from "./defaults";
 import { expandHomePath, resolveToolPaths } from "./paths";
 import { loadRegistry } from "./registry";
-import { findRepoSkill, findStaleSymlinks, listCuratedSkills, listRepoSkills, listSkillsByScope } from "./skills";
+import { loadMcpLibrary } from "./mcp-library";
+import {
+  buildSkillInventory,
+  findAvailableSkill,
+  findStaleSymlinks,
+  listCuratedSkills,
+  listRepoSkills,
+  listSkillsByScope,
+} from "./skills";
 import { lstatSafe } from "./fs";
 import { loadProjectConfig, mergeProjectConfig, summarizeProjectConfig, isServerToggle } from "./project";
+import { loadEffectiveConfig } from "./user-config";
+import { getExtension } from "./extensions/registry";
 import type { CanonicalConfig, RegistryServer } from "./types";
 
 export interface DoctorReport {
@@ -27,13 +38,16 @@ export async function buildStatusReport(repoRoot: string, agentsDir: string, hom
     listCuratedSkills(agentsDir),
     listRepoSkills(repoRoot),
   ]);
-  let effectiveConfig = config;
-  let effectiveRegistry = registry;
+  const userMcpLibrary = await loadMcpLibrary(agentsDir);
+  const mergedRegistry = mergeUserMcpLibrary(registry, userMcpLibrary);
+  const loadedConfig = await loadEffectiveConfig(config, agentsDir);
+  let effectiveConfig = loadedConfig.config;
+  let effectiveRegistry = mergedRegistry;
   let projectSummary: ReturnType<typeof summarizeProjectConfig> | undefined;
 
   if (projectConfigPath) {
     const projectConfig = await loadProjectConfig(projectConfigPath);
-    const merged = mergeProjectConfig(config, registry, projectConfig);
+    const merged = mergeProjectConfig(effectiveConfig, mergedRegistry, projectConfig);
     effectiveConfig = merged.config;
     effectiveRegistry = merged.registry;
     projectSummary = summarizeProjectConfig(projectConfig);
@@ -51,6 +65,9 @@ export async function buildStatusReport(repoRoot: string, agentsDir: string, hom
     curatedSkillCount: curatedSkills.length,
     repoSkillCount: repoSkills.length,
     activeMcpServerCount: Object.keys(activeServers).length,
+    globalDefaultSkillCount: effectiveConfig.defaults?.skills?.length ?? 0,
+    globalDefaultMcpServerCount: effectiveConfig.defaults?.mcpServers?.length ?? 0,
+    userLibraryMcpServerCount: Object.keys(userMcpLibrary.servers).length,
     project: projectSummary && projectConfigPath
       ? {
           configPath: projectConfigPath,
@@ -77,7 +94,7 @@ async function detectStaleSkillSymlinks(
   const includedSkills = await Promise.all(
     (skillOverrides?.include ?? [])
       .filter((name) => !excluded.has(name))
-      .map(async (name) => await findRepoSkill(repoRoot, name)),
+      .map(async (name) => await findAvailableSkill(repoRoot, agentsDir, name)),
   );
   const desiredClaude = new Set([
     ...curated.map((entry) => entry.name).filter((name) => !excluded.has(name)),
@@ -157,8 +174,21 @@ async function detectMissingGeneratedFiles(config: CanonicalConfig, agentsDir: s
 
 export async function buildDoctorReport(repoRoot: string, agentsDir: string, homeDir: string): Promise<DoctorReport> {
   const toolPaths = resolveToolPaths(homeDir);
-  const [config, registry] = await Promise.all([loadConfig(repoRoot), loadRegistry(repoRoot)]);
+  const [repoConfig, builtInRegistry, userMcpLibrary, skillInventory] = await Promise.all([
+    loadConfig(repoRoot),
+    loadRegistry(repoRoot),
+    loadMcpLibrary(agentsDir),
+    buildSkillInventory(repoRoot, agentsDir, homeDir),
+  ]);
+  const registry = mergeUserMcpLibrary(builtInRegistry, userMcpLibrary);
+  const { config } = await loadEffectiveConfig(repoConfig, agentsDir);
   const activeServers = buildActiveServers(registry, config);
+  const defaultIssues = await validateDefaultReferences({
+    config,
+    registry,
+    skillNames: new Set(skillInventory.map((skill) => skill.name)),
+  });
+  const defaultSkillOverrides = config.defaults?.skills ? { include: config.defaults.skills } : undefined;
 
   return {
     brokenSymlinks: await detectBrokenSymlinks([
@@ -169,10 +199,10 @@ export async function buildDoctorReport(repoRoot: string, agentsDir: string, hom
         join(toolPaths.codexSkills, name),
       ),
     ]),
-    staleSkillSymlinks: await detectStaleSkillSymlinks(repoRoot, agentsDir, homeDir),
+    staleSkillSymlinks: await detectStaleSkillSymlinks(repoRoot, agentsDir, homeDir, defaultSkillOverrides),
     mcpDrift: await detectMcpDrift(config, activeServers, agentsDir, homeDir),
     missingGeneratedFiles: await detectMissingGeneratedFiles(config, agentsDir),
-    projectConfigIssues: [],
+    projectConfigIssues: defaultIssues,
   };
 }
 
@@ -187,15 +217,18 @@ export async function buildDoctorReportWithProject(
     return report;
   }
 
-  const [config, registry, repoSkills] = await Promise.all([
+  const [repoConfig, builtInRegistry, skillInventory, userMcpLibrary] = await Promise.all([
     loadConfig(repoRoot),
     loadRegistry(repoRoot),
-    listRepoSkills(repoRoot),
+    buildSkillInventory(repoRoot, agentsDir, homeDir),
+    loadMcpLibrary(agentsDir),
   ]);
+  const registry = mergeUserMcpLibrary(builtInRegistry, userMcpLibrary);
+  const { config } = await loadEffectiveConfig(repoConfig, agentsDir);
   const project = await loadProjectConfig(projectConfigPath);
   const merged = mergeProjectConfig(config, registry, project);
   const activeServers = buildActiveServers(registry, config);
-  const repoSkillNames = new Set(repoSkills.map((skill) => skill.name));
+  const availableSkillNames = new Set(skillInventory.map((skill) => skill.name));
   const issues: string[] = [];
 
   for (const [name, override] of Object.entries(project.servers ?? {})) {
@@ -212,8 +245,14 @@ export async function buildDoctorReportWithProject(
   }
 
   for (const name of [...(project.skills?.include ?? []), ...(project.skills?.exclude ?? [])]) {
-    if (!repoSkillNames.has(name)) {
+    if (!availableSkillNames.has(name)) {
       issues.push(`Unknown skill reference: "${name}"`);
+    }
+  }
+
+  for (const name of Object.keys(project.extensions ?? {})) {
+    if (!getExtension(name)) {
+      issues.push(`Unknown extension reference: "${name}"`);
     }
   }
 
@@ -228,7 +267,7 @@ export async function buildDoctorReportWithProject(
     staleSkillSymlinks: await detectStaleSkillSymlinks(repoRoot, agentsDir, homeDir, merged.skills),
     mcpDrift: await detectMcpDrift(merged.config, buildActiveServers(merged.registry, merged.config), agentsDir, homeDir),
     missingGeneratedFiles: await detectMissingGeneratedFiles(merged.config, agentsDir),
-    projectConfigIssues: issues,
+    projectConfigIssues: [...report.projectConfigIssues, ...issues],
   };
 }
 

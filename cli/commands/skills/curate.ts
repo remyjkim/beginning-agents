@@ -1,4 +1,4 @@
-// ABOUTME: Implements the `agents skills curate` command for publishing shared skills to ~/.agents/skills.
+// ABOUTME: Implements the `bgng skills curate` command for publishing shared skills to ~/.agents/skills.
 // ABOUTME: Validates the requested skill and uses the core curation helper rather than ad hoc symlink logic.
 
 import { Option, UsageError } from "clipanion";

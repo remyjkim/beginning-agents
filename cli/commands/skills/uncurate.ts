@@ -1,4 +1,4 @@
-// ABOUTME: Implements the `agents skills uncurate` command for removing skills from ~/.agents/skills.
+// ABOUTME: Implements the `bgng skills uncurate` command for removing skills from ~/.agents/skills.
 // ABOUTME: Only removes the curated publication-layer link; downstream tool cleanup remains explicit.
 
 import { Option, UsageError } from "clipanion";

@@ -1,4 +1,4 @@
-// ABOUTME: Implements the `agents skills list` command for listing repo and curated skills.
+// ABOUTME: Implements the `bgng skills list` command for listing repo and curated skills.
 // ABOUTME: Supports both human-readable and JSON output for operator and agent workflows.
 
 import { Option } from "clipanion";

@@ -1,4 +1,4 @@
-// ABOUTME: Implements the top-level `agents sync` command as a convenience wrapper over full sync behavior.
+// ABOUTME: Implements the top-level `bgng sync` command as a convenience wrapper over full sync behavior.
 // ABOUTME: Mirrors the legacy sync-mcp entrypoint for easier migration while using the extracted core modules.
 
 import { Option, UsageError } from "clipanion";

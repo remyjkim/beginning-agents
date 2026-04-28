@@ -1,10 +1,19 @@
-// ABOUTME: Implements canonical MCP filtering and target-specific rendering for all sync surfaces.
-// ABOUTME: Shared by the agents CLI commands and the legacy sync-mcp compatibility wrapper.
+// ABOUTME: Implements harness MCP filtering and target-specific rendering for all sync surfaces.
+// ABOUTME: Shared by bgng commands and the legacy sync-mcp compatibility wrapper.
 
 import { parse as parseToml, stringify as stringifyToml } from "smol-toml";
 import type { CanonicalConfig, CanonicalRegistry, RegistryServer } from "./types";
 
 export function buildActiveServers(registry: CanonicalRegistry, config: CanonicalConfig) {
+  if (config.defaults?.mcpServers) {
+    const defaults = new Set(config.defaults.mcpServers);
+    return Object.fromEntries(
+      Object.entries(registry.servers).filter(([name, server]) =>
+        defaults.has(name) && server.transport !== "platform-provided"
+      ),
+    );
+  }
+
   const parallelMcpEnabled = config.parallel?.mcp?.enabled === true;
 
   return Object.fromEntries(

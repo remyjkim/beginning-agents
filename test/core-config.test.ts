@@ -1,4 +1,4 @@
-// ABOUTME: Verifies canonical config and registry loading from the reusable core modules.
+// ABOUTME: Verifies baseline harness config and registry loading from the reusable core modules.
 // ABOUTME: Ensures future CLI commands read the same source-of-truth files as the sync wrapper.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -23,7 +23,7 @@ async function createTempRoot() {
 }
 
 describe("core config and registry", () => {
-  test("loads canonical config from repo root", async () => {
+  test("loads baseline harness config from repo root", async () => {
     const root = await createTempRoot();
     const repoRoot = join(root, "repo");
 
@@ -53,7 +53,7 @@ describe("core config and registry", () => {
     expect(config.parallel?.cli?.enabled).toBe(true);
   });
 
-  test("loads canonical registry from repo root", async () => {
+  test("loads packaged registry from repo root", async () => {
     const root = await createTempRoot();
     const repoRoot = join(root, "repo");
 

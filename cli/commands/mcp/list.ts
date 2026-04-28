@@ -1,11 +1,15 @@
-// ABOUTME: Implements the `agents mcp list` command for inspecting canonical MCP server state.
+// ABOUTME: Implements `bgng mcp list` for inspecting harness MCP server state.
 // ABOUTME: Surfaces whether each canonical server is active under the current config and target setup.
 
 import { Option } from "clipanion";
 import { loadConfig } from "../../../cli/core/config";
+import { mergeUserMcpLibrary } from "../../../cli/core/defaults";
+import { loadMcpLibrary } from "../../../cli/core/mcp-library";
 import { buildActiveServers } from "../../../cli/core/mcp";
 import { renderJson, renderTable } from "../../../cli/core/output";
+import { loadProjectConfig, mergeProjectConfig } from "../../../cli/core/project";
 import { loadRegistry } from "../../../cli/core/registry";
+import { loadEffectiveConfig } from "../../../cli/core/user-config";
 import { BaseCommand } from "../base";
 
 export class McpListCommand extends BaseCommand {
@@ -13,7 +17,7 @@ export class McpListCommand extends BaseCommand {
 
   static override usage = BaseCommand.Usage({
     category: "MCP",
-    description: "List canonical MCP servers and their current active state.",
+    description: "List harness MCP servers and their current active state.",
   });
 
   json = Option.Boolean("--json", false, {
@@ -21,17 +25,28 @@ export class McpListCommand extends BaseCommand {
   });
 
   async execute() {
-    const [config, registry] = await Promise.all([
+    const [repoConfig, builtInRegistry, userMcpLibrary] = await Promise.all([
       loadConfig(this.context.repoRoot),
       loadRegistry(this.context.repoRoot),
+      loadMcpLibrary(this.context.agentsDir),
     ]);
-    const active = buildActiveServers(registry, config);
-    const targetSummary = Object.entries(config.targets)
+    const registry = mergeUserMcpLibrary(builtInRegistry, userMcpLibrary);
+    const { config } = await loadEffectiveConfig(repoConfig, this.context.agentsDir);
+    let effectiveConfig = config;
+    let effectiveRegistry = registry;
+    if (this.context.projectConfigPath) {
+      const merged = mergeProjectConfig(config, registry, await loadProjectConfig(this.context.projectConfigPath));
+      effectiveConfig = merged.config;
+      effectiveRegistry = merged.registry;
+    }
+
+    const active = buildActiveServers(effectiveRegistry, effectiveConfig);
+    const targetSummary = Object.entries(effectiveConfig.targets)
       .filter(([, target]) => target.enabled)
       .map(([name]) => name)
       .join(",");
 
-    const rows = Object.entries(registry.servers)
+    const rows = Object.entries(effectiveRegistry.servers)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([name, server]) => ({
         name,

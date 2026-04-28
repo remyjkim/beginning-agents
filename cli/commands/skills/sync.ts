@@ -1,9 +1,12 @@
-// ABOUTME: Implements the `agents skills sync` command using the extracted skill sync core.
+// ABOUTME: Implements the `bgng skills sync` command using the extracted skill sync core.
 // ABOUTME: Applies current curated state downstream while preserving safe-by-default stale-link reporting.
 
 import { Option } from "clipanion";
+import { loadConfig } from "../../../cli/core/config";
 import { renderJson, renderSyncResult } from "../../../cli/core/output";
 import { normalizeSyncPathOptions } from "../../../cli/core/paths";
+import { loadProjectConfig, mergeProjectConfig } from "../../../cli/core/project";
+import { loadRegistry } from "../../../cli/core/registry";
 import { syncSkills } from "../../../cli/core/skills";
 import { BaseCommand } from "../base";
 
@@ -24,16 +27,28 @@ export class SkillsSyncCommand extends BaseCommand {
   });
 
   async execute() {
+    let skillOverrides;
+    if (this.context.projectConfigPath) {
+      const [config, registry, projectConfig] = await Promise.all([
+        loadConfig(this.context.repoRoot),
+        loadRegistry(this.context.repoRoot),
+        loadProjectConfig(this.context.projectConfigPath),
+      ]);
+      skillOverrides = mergeProjectConfig(config, registry, projectConfig).skills;
+    }
+
     const result = await syncSkills(
       normalizeSyncPathOptions(
         {
           repoRoot: this.context.repoRoot,
           agentsDir: this.context.agentsDir,
           homeDir: this.context.homeDir,
+          cwd: this.context.cwd,
           dryRun: this.dryRun,
         },
         import.meta.path,
       ),
+      skillOverrides,
     );
 
     this.context.stdout.write(this.json ? renderJson(result) : renderSyncResult(result));

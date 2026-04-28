@@ -1,0 +1,81 @@
+// ABOUTME: Verifies project-first extension activation through `bgng add extension`.
+// ABOUTME: Protects the higher-level UX over the lower-level extensions setup commands.
+
+import { afterEach, describe, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
+import { mkdir, readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { cleanupTempRoots, runAgentsCli, scaffoldCliFixture } from "./helpers";
+
+const tempRoots: string[] = [];
+
+afterEach(async () => {
+  await cleanupTempRoots(tempRoots);
+});
+
+function envFor(fixture: Awaited<ReturnType<typeof scaffoldCliFixture>>) {
+  return {
+    AGENTS_REPO_ROOT: fixture.repoRoot,
+    AGENTS_HOME_DIR: fixture.homeDir,
+    AGENTS_DIR: fixture.agentsDir,
+  };
+}
+
+describe("bgng add extension", () => {
+  test("adds Parallel extension config to the current project", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+    const projectDir = join(fixture.root, "project");
+    await mkdir(projectDir, { recursive: true });
+
+    const result = await runAgentsCli(["add", "extension", "parallel", "--mcp"], envFor(fixture), projectDir);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Added Parallel extension");
+    const config = JSON.parse(await readFile(join(projectDir, ".agents", "bgng", "config.json"), "utf8")) as {
+      extensions?: { parallel?: unknown };
+    };
+    expect(config.extensions?.parallel).toEqual({ enabled: true, skills: true, mcp: true });
+  });
+
+  test("supports dry-run json without writing config", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+    const projectDir = join(fixture.root, "project");
+    await mkdir(projectDir, { recursive: true });
+
+    const result = await runAgentsCli(["add", "extension", "parallel", "--dry-run", "--json", "--skip-skills"], envFor(fixture), projectDir);
+
+    expect(result.exitCode).toBe(0);
+    const parsed = JSON.parse(result.stdout) as { kind: string; id: string; projectChanges: Array<{ action: string }> };
+    expect(parsed.kind).toBe("extension");
+    expect(parsed.id).toBe("parallel");
+    expect(parsed.projectChanges[0]?.action).toBe("enabled");
+    expect(existsSync(join(projectDir, ".agents", "bgng", "config.json"))).toBe(false);
+  });
+
+  test("adds Beads semantic config without running external setup", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+    const projectDir = join(fixture.root, "project");
+    await mkdir(projectDir, { recursive: true });
+
+    const result = await runAgentsCli(["add", "extension", "beads", "--target=codex", "--include-skill"], envFor(fixture), projectDir);
+
+    expect(result.exitCode).toBe(0);
+    const config = JSON.parse(await readFile(join(projectDir, ".agents", "bgng", "config.json"), "utf8")) as {
+      extensions?: { beads?: unknown };
+    };
+    expect(config.extensions?.beads).toEqual({ enabled: true, targets: ["codex"], includeSkill: true });
+  });
+
+  test("fails for unknown extensions", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+
+    const result = await runAgentsCli(["add", "extension", "missing"], envFor(fixture), fixture.root);
+
+    expect(result.exitCode).not.toBe(0);
+    expect(`${result.stdout}\n${result.stderr}`).toContain("Unknown extension");
+  });
+});

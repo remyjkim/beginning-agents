@@ -1,4 +1,4 @@
-// ABOUTME: Loads and saves the canonical MCP registry file for the agents CLI.
+// ABOUTME: Loads and saves the packaged MCP registry file for the bgng harness CLI.
 // ABOUTME: Provides the single shared entrypoint for registry reads and future mutation commands.
 
 import { readFile, writeFile } from "node:fs/promises";

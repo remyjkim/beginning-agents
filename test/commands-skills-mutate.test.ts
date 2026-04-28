@@ -1,4 +1,4 @@
-// ABOUTME: Verifies `agents skills curate`, `uncurate`, and `sync` command behavior against temp fixtures.
+// ABOUTME: Verifies `bgng skills curate`, `uncurate`, and `sync` command behavior against temp fixtures.
 // ABOUTME: Locks in safe-by-default mutation semantics for the curated skill publication layer.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -12,7 +12,15 @@ afterEach(async () => {
   await cleanupTempRoots(tempRoots);
 });
 
-describe("agents skills mutate", () => {
+async function addParallelSkills(repoRoot: string) {
+  for (const name of ["parallel-web-search", "parallel-web-extract", "parallel-deep-research", "parallel-data-enrichment"]) {
+    const skillDir = join(repoRoot, "skills", "shared", name);
+    await mkdir(skillDir, { recursive: true });
+    await writeFile(join(skillDir, "SKILL.md"), `---\nname: ${name}\ndescription: ${name}\n---\n`);
+  }
+}
+
+describe("bgng skills mutate", () => {
   test("curate creates the agents-layer symlink for a package-backed shared skill", async () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
@@ -82,6 +90,41 @@ describe("agents skills mutate", () => {
     expect(result.exitCode).toBe(0);
     expect((await lstat(join(fixture.homeDir, ".claude", "skills", "alpha"))).isSymbolicLink()).toBe(true);
     expect((await lstat(join(fixture.homeDir, ".codex", "skills", "alpha"))).isSymbolicLink()).toBe(true);
+  });
+
+  test("sync applies project extension-derived skill includes", async () => {
+    const fixture = await scaffoldCliFixture();
+    tempRoots.push(fixture.root);
+    await addParallelSkills(fixture.repoRoot);
+    const projectDir = join(fixture.root, "project");
+    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    await mkdir(dirname(projectConfigPath), { recursive: true });
+    await writeFile(
+      projectConfigPath,
+      JSON.stringify(
+        {
+          version: 1,
+          extensions: {
+            parallel: { enabled: true, skills: true, mcp: false },
+          },
+          skills: {
+            exclude: ["parallel-web-extract"],
+          },
+        },
+        null,
+        2,
+      ),
+    );
+
+    const result = await runAgentsCli(["skills", "sync"], {
+      AGENTS_REPO_ROOT: fixture.repoRoot,
+      AGENTS_HOME_DIR: fixture.homeDir,
+      AGENTS_DIR: fixture.agentsDir,
+    }, projectDir);
+
+    expect(result.exitCode).toBe(0);
+    expect((await lstat(join(fixture.homeDir, ".claude", "skills", "parallel-web-search"))).isSymbolicLink()).toBe(true);
+    await expect(access(join(fixture.homeDir, ".claude", "skills", "parallel-web-extract"))).rejects.toThrow();
   });
 
   test("sync installs downstream symlinks for curated package-backed skills", async () => {

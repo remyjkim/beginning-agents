@@ -4,11 +4,13 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { CanonicalConfig, CanonicalRegistry, ProjectConfig, RegistryServer, ServerOverride } from "./types";
+import { applyProjectExtensionConfig, mergeProjectSkillOverrides, toProjectSkillOverrides } from "./extensions/project-config";
 
 export interface MergedProjectState {
   config: CanonicalConfig;
   registry: CanonicalRegistry;
   skills?: ProjectConfig["skills"];
+  extensions?: ProjectConfig["extensions"];
 }
 
 export function isServerToggle(override: ServerOverride): override is { enabled: boolean } {
@@ -47,6 +49,7 @@ export function mergeProjectConfig(
 ): MergedProjectState {
   const nextConfig: CanonicalConfig = JSON.parse(JSON.stringify(config));
   const nextRegistry: CanonicalRegistry = JSON.parse(JSON.stringify(registry));
+  const skillOverrides = mergeProjectSkillOverrides(project);
 
   for (const [name, override] of Object.entries(project.servers ?? {})) {
     if (isServerToggle(override)) {
@@ -68,10 +71,19 @@ export function mergeProjectConfig(
     }
   }
 
+  applyProjectExtensionConfig({
+    config: nextConfig,
+    registry: nextRegistry,
+    extensions: project.extensions,
+    include: skillOverrides.include,
+    exclude: skillOverrides.exclude,
+  });
+
   return {
     config: nextConfig,
     registry: nextRegistry,
-    skills: project.skills,
+    skills: toProjectSkillOverrides(skillOverrides.include, skillOverrides.exclude),
+    extensions: project.extensions,
   };
 }
 
@@ -99,6 +111,10 @@ export function summarizeProjectConfig(project: ProjectConfig) {
     serverAddedCount: serverEntries.filter(([, override]) => !isServerToggle(override)).length,
     skillIncludeCount: project.skills?.include?.length ?? 0,
     skillExcludeCount: project.skills?.exclude?.length ?? 0,
+    extensionOverrideCount: Object.keys(project.extensions ?? {}).length,
+    extensionOverrides: Object.entries(project.extensions ?? {}).map(([name, extension]) =>
+      `${name} ${extension.enabled === false ? "disabled" : "enabled"}`,
+    ),
     targetOverrideCount: targetEntries.length,
     targetOverrides: targetEntries.map(([name, override]) => `${name} ${override.enabled ? "enabled" : "disabled"}`),
   };

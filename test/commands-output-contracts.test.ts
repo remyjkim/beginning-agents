@@ -28,6 +28,11 @@ describe("command output contracts", () => {
       ["skills", "sync", "--dry-run"],
       ["mcp", "list"],
       ["mcp", "sync", "--dry-run"],
+      ["extensions", "list"],
+      ["extensions", "show", "beads"],
+      ["extensions", "status"],
+      ["extensions", "doctor"],
+      ["extensions", "setup", "parallel", "--dry-run"],
       ["status"],
       ["doctor"],
     ];
@@ -46,6 +51,11 @@ describe("command output contracts", () => {
       ["skills", "sync", "--dry-run", "--json"],
       ["mcp", "list", "--json"],
       ["mcp", "sync", "--dry-run", "--json"],
+      ["extensions", "list", "--json"],
+      ["extensions", "show", "beads", "--json"],
+      ["extensions", "status", "--json"],
+      ["extensions", "doctor", "--json"],
+      ["extensions", "setup", "parallel", "--dry-run", "--json"],
       ["status", "--json"],
       ["doctor", "--json"],
     ];

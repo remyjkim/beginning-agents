@@ -1,4 +1,4 @@
-// ABOUTME: Verifies the extracted skill curation and sync helpers for the agents CLI core.
+// ABOUTME: Verifies the extracted skill curation and sync helpers for the bgng harness CLI core.
 // ABOUTME: Keeps shared-skill publication semantics stable while commands are added on top.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -6,6 +6,7 @@ import { lstat, mkdtemp, mkdir, realpath, rm, symlink, writeFile } from "node:fs
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { normalizeSyncPathOptions } from "../cli/core/paths";
+import { createInstalledSkillBundle } from "./helpers";
 
 const tempRoots: string[] = [];
 
@@ -168,6 +169,25 @@ describe("core skills", () => {
     expect(result.warnings).toEqual([]);
     expect((await lstat(join(homeDir, ".claude", "skills", "beta"))).isSymbolicLink()).toBe(true);
     expect((await lstat(join(homeDir, ".codex", "skills", "beta"))).isSymbolicLink()).toBe(true);
+  });
+
+  test("syncSkills include adds a package-backed non-curated skill to downstream links", async () => {
+    const root = await createTempRoot();
+    const homeDir = join(root, "home");
+    const agentsDir = join(homeDir, ".agents");
+    await mkdir(join(root, "skills", "shared"), { recursive: true });
+    await mkdir(join(agentsDir, "skills"), { recursive: true });
+    await createInstalledSkillBundle(agentsDir, { skillName: "hello-skill" });
+
+    const { syncSkills } = await import("../cli/core/skills");
+    const result = await syncSkills(
+      normalizeSyncPathOptions({ repoRoot: root, agentsDir, homeDir }, import.meta.path),
+      { include: ["hello-skill"] },
+    );
+
+    expect(result.warnings).toEqual([]);
+    expect((await lstat(join(homeDir, ".claude", "skills", "hello-skill"))).isSymbolicLink()).toBe(true);
+    expect((await lstat(join(homeDir, ".codex", "skills", "hello-skill"))).isSymbolicLink()).toBe(true);
   });
 
   test("syncSkills exclude removes a curated skill from downstream links", async () => {

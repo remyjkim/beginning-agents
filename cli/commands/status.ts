@@ -1,4 +1,4 @@
-// ABOUTME: Implements the `agents status` command for a concise system overview of repo and derived state.
+// ABOUTME: Implements the `bgng status` command for a concise system overview of repo and derived state.
 // ABOUTME: Provides both human-readable and JSON output for operators and automation.
 
 import { Option } from "clipanion";
@@ -47,6 +47,7 @@ export class StatusCommand extends BaseCommand {
       output += `\nProject: ${status.project.configPath}\n\n`;
       output += `  Server overrides:  ${status.project.serverOverrideCount} (${status.project.serverDisabledCount} disabled, ${status.project.serverAddedCount} added)\n`;
       output += `  Skill overrides:   ${status.project.skillIncludeCount} included, ${status.project.skillExcludeCount} excluded\n`;
+      output += `  Extension overrides: ${status.project.extensionOverrides.join(", ") || "none"}\n`;
       output += `  Target overrides:  ${status.project.targetOverrides.join(", ") || "none"}\n`;
     }
     this.context.stdout.write(output);
