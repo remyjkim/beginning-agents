@@ -8,7 +8,7 @@ Use it for:
 
 - day-to-day command usage
 - understanding the local state model
-- safe apply/sync workflows
+- safe write workflows
 - locating deeper manuals for project config, extension bundles, and publishing
 
 For focused subsystem docs, see:
@@ -36,7 +36,7 @@ It operates on this model:
 
 The CLI is intentionally conservative:
 
-- apply/sync is non-destructive by default
+- write is non-destructive by default
 - stale state is reported, not silently removed
 - `doctor` is report-only
 - package-backed skills are made available first, then curated explicitly
@@ -50,7 +50,7 @@ Use this while developing inside the repo:
 ```bash
 bun run bgng -- --help
 bun run bgng -- status
-bun run bgng -- apply --dry-run
+bun run bgng -- write --dry-run
 bun run bgng -- skills list
 bun run bgng -- mcp list
 ```
@@ -68,9 +68,9 @@ Then use:
 ```bash
 bgng --help
 bgng status
-bgng apply --dry-run
+bgng write --dry-run
 bgng skills list
-bgng mcp apply --dry-run
+bgng mcp write --dry-run
 ```
 
 Both modes execute the same command implementations.
@@ -100,11 +100,11 @@ Important directories:
 bgng status
 bgng skills list
 bgng mcp list
-bgng apply --dry-run
-bgng apply
+bgng write --dry-run
+bgng write
 ```
 
-If you want project-local overrides, scaffold them before syncing from that project:
+If you want project-local overrides, scaffold them before writing from that project:
 
 ```bash
 bgng init
@@ -119,8 +119,8 @@ Implemented groups:
 - `add`
 - `search`
 - `library`
-- `apply`
-- `sync`
+- `write`
+- `scan`
 - `skills`
 - `mcp`
 - `extensions`
@@ -200,37 +200,31 @@ bgng library defaults remove mcp <server-name>
 
 `library defaults add` makes an available skill or MCP server active globally by writing user config under `~/.agents/bgng/config.json`. Use project `bgng add ...` when only the current project should use something.
 
-## Apply Command
+## Write Command
 
 Use:
 
 ```bash
-bgng apply
-bgng apply --dry-run
-bgng apply --json
-bgng apply --target=claude
-bgng apply --mcp-only
-bgng apply --skills-only
+bgng write
+bgng write --dry-run
+bgng write --json
+bgng write --target=claude
+bgng write --mcp-only
+bgng write --skills-only
 ```
 
-`apply` is the primary one-way materialization command. It reads global config, project config, and local inventory, then writes effective state into downstream tools.
+`write` is the primary one-way materialization command. It reads global config, project config, and local inventory, then writes effective state into downstream tools.
 
-## Sync Command
+## Scan Command
 
 Use:
 
 ```bash
-bgng sync
-bgng sync --dry-run
-bgng sync --json
-bgng sync --target=claude
+bgng scan
+bgng scan --json
 ```
 
-This is the convenience wrapper over the full sync behavior and the closest CLI equivalent to the legacy `sync-mcp.ts` entrypoint.
-
-When a per-project config exists, `bgng sync` automatically uses the effective merged project view discovered from the current working directory.
-
-Prefer `bgng apply` in new docs and workflows. Keep `bgng sync` for compatibility and existing scripts.
+`scan` is currently a placeholder. Its planned role is non-mutating local harness discovery: inspect existing local agent tool config, report candidates for library/default/project config, and avoid writing files unless a future explicit import/write step is added.
 
 ## Skills Commands
 
@@ -282,8 +276,8 @@ bgng skills packages show <package-name> --json
 Behavior:
 
 - a bundle is ingested into the managed cache under `~/.agents/packages/skills`
-- adding a bundle does not curate or sync any skill automatically
-- bundles are content sources; `bgng` remains the only supported sync and curation surface
+- adding a bundle does not curate or write any skill automatically
+- bundles are content sources; `bgng` remains the only supported write and curation surface
 
 See [03_npm-skill-bundles-guide.md](./03_npm-skill-bundles-guide.md) for the full bundle model.
 
@@ -297,8 +291,8 @@ This adds the skill into `~/.agents/skills`, which is the curated publication la
 
 Important:
 
-- this does not automatically sync tool directories
-- curate first, then run `bgng skills sync`
+- this does not automatically write tool directories
+- curate first, then run `bgng write --skills-only`
 - this works for built-in shared skills and package-backed shared skills when the skill name is unique
 
 ### Uncurate a shared skill
@@ -314,22 +308,22 @@ Important:
 - it does not automatically prune downstream tool symlinks
 - downstream cleanup is intentionally not destructive by default
 
-### Sync skills downstream
+### Write skills downstream
 
 ```bash
-bgng skills sync
+bgng write --skills-only
 ```
 
 Dry-run:
 
 ```bash
-bgng skills sync --dry-run
+bgng write --skills-only --dry-run
 ```
 
 JSON:
 
 ```bash
-bgng skills sync --json
+bgng write --skills-only --json
 ```
 
 Behavior:
@@ -366,34 +360,34 @@ What it shows:
 
 This is the quickest way to inspect the effect of toggles like `parallel.mcp.enabled` and project-local extension MCP settings.
 
-### Sync MCP into enabled targets
+### Write MCP into enabled targets
 
 ```bash
-bgng mcp sync
+bgng mcp write
 ```
 
 Dry-run:
 
 ```bash
-bgng mcp sync --dry-run
+bgng mcp write --dry-run
 ```
 
 Target-specific:
 
 ```bash
-bgng mcp sync --target=claude
+bgng mcp write --target=claude
 ```
 
 JSON:
 
 ```bash
-bgng mcp sync --json
+bgng mcp write --json
 ```
 
 Behavior:
 
 - renders active harness MCP state
-- applies it to enabled targets
+- writes it to enabled targets
 - preserves the current non-destructive semantics
 - uses project-local server and target overrides when present
 - uses project extension-derived MCP settings, such as `extensions.parallel.mcp`
@@ -507,7 +501,7 @@ Common flags:
 - `--stealth` passes Beads stealth mode to `bd init` and `bd setup`
 - `--skip-bd-init` skips `bd init`
 - `--skip-bd-setup` skips `bd setup`
-- `--include-skill` sets `extensions.beads.includeSkill: true` so sync derives `beads-task-tracking`
+- `--include-skill` sets `extensions.beads.includeSkill: true` so write derives `beads-task-tracking`
 - `--json` returns structured output
 
 Safety constraints:
@@ -572,11 +566,11 @@ Typical project-config issues include:
 
 ## Common Workflows
 
-### Global machine sync
+### Global machine write
 
 ```bash
-bgng apply --dry-run
-bgng apply
+bgng write --dry-run
+bgng write
 ```
 
 ### Add reusable inventory and make it global
@@ -586,7 +580,7 @@ bgng library add skill <bundle>
 bgng library defaults add skill <skill-name>
 bgng library add mcp ./github-mcp.json --as github
 bgng library defaults add mcp github
-bgng apply --dry-run
+bgng write --dry-run
 ```
 
 Use this when every project should inherit the item unless a project disables it.
@@ -597,7 +591,7 @@ Use this when every project should inherit the item unless a project disables it
 cd /path/to/project
 bgng init
 bgng status
-bgng apply --dry-run
+bgng write --dry-run
 ```
 
 ### Add extension skill bundle and expose one skill
@@ -606,29 +600,15 @@ bgng apply --dry-run
 bgng skills packages add <bundle>
 bgng skills packages show <package-name>
 bgng add skill <skill-name>
-bgng apply
+bgng write
 ```
 
-### Inspect project issues before syncing
+### Inspect project issues before writing
 
 ```bash
 bgng status
 bgng doctor
 ```
-
-## Compatibility Wrapper
-
-The legacy sync entrypoint remains available:
-
-```bash
-bun run sync-mcp.ts
-bun run sync-mcp.ts --dry-run
-bun run sync-mcp.ts --mcp-only
-bun run sync-mcp.ts --skills-only
-bun run sync-mcp.ts --target=claude
-```
-
-Use `bgng` for normal operation. Keep `sync-mcp.ts` for compatibility and transition support.
 
 ## Optional Extensions
 
@@ -638,14 +618,14 @@ Use `bgng` for normal operation. Keep `sync-mcp.ts` for compatibility and transi
 - `parallel-cli` for Parallel-backed skills
 - `markdownify-mcp` for local markdown extraction workflows
 
-These are optional and machine-dependent. Their absence should not block the baseline CLI and sync model.
+These are optional and machine-dependent. Their absence should not block the baseline CLI and write model.
 
 ## Current Limits
 
 - `doctor` is report-only
 - downstream stale symlinks are reported, not pruned
 - package-backed bundle update/remove lifecycle is not implemented yet
-- package-backed bundles are extension sources, not authoritative sync CLIs
+- package-backed bundles are extension sources, not authoritative write CLIs
 - per-project `skills.include` requires skill names to resolve uniquely across repo-native and installed package-backed sources
 
 ## Further Reading

@@ -19,7 +19,7 @@ In this model:
 
 - npm is the distribution and versioning layer
 - the bundle provides skill files plus metadata
-- `bgng` remains the only supported local meta-harness control plane for curation and sync
+- `bgng` remains the only supported local meta-harness control plane for curation and downstream write
 
 Bundles are extension sources. They do not replace the built-in first-party skill tree in the repo.
 
@@ -41,7 +41,7 @@ It is not designed as a general public marketplace contract yet.
 
 ## Bundle Boundary
 
-`bgng` uses npm packages as content bundles, not as sync tools.
+`bgng` uses npm packages as content bundles, not as write tools.
 
 Specifically, the package contributes:
 
@@ -57,7 +57,7 @@ Specifically, the package contributes:
 - validation
 - inventory
 - curation
-- downstream sync
+- downstream write
 
 ## Required Bundle Shape
 
@@ -176,7 +176,7 @@ Typical flow:
 bgng skills packages add <bundle>
 bgng skills packages show <package-name>
 bgng add skill <skill-name>
-bgng apply
+bgng write
 ```
 
 Important distinction:
@@ -184,7 +184,7 @@ Important distinction:
 - available: the bundle exists in `~/.agents/packages/skills`
 - default: a shared skill is listed in `~/.agents/bgng/config.json` under `defaults.skills`
 - compatibility publication: a default or curated shared skill is linked into `~/.agents/skills`
-- synced: downstream tool symlinks exist in `~/.claude/skills` and `~/.codex/skills`
+- written: downstream tool symlinks exist in `~/.claude/skills` and `~/.codex/skills`
 
 ## Current Constraints
 
@@ -207,7 +207,7 @@ Implemented now:
 - show
 - inventory
 - curation
-- sync
+- downstream write
 
 Deferred:
 
@@ -218,7 +218,7 @@ Deferred:
 
 Per-project `skills.include` supports both repo-native shared skills and installed package-backed shared skills.
 
-Keep package-backed skill names unique. If a project include references an unknown or ambiguous skill name, `bgng doctor` reports it and apply/sync will not silently pick an arbitrary source.
+Keep package-backed skill names unique. If a project include references an unknown or ambiguous skill name, `bgng doctor` reports it and write will not silently pick an arbitrary source.
 
 ## How Bundles Relate To Built-In Skills
 
@@ -255,7 +255,7 @@ bgng skills list --json
 
 Current bundle support does not mean:
 
-- bundle CLIs are the supported sync surface
+- bundle CLIs are the supported write surface
 - npm install locations are the authoritative source
 - arbitrary public npm packages are automatically trusted
 - install-time scripts are part of the intended workflow

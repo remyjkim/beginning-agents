@@ -53,7 +53,8 @@ After a future Homebrew install, verify:
 - `bgng status --json`
 - `bgng doctor --json`
 - `bgng init --force`
-- `bgng sync --dry-run`
+- `bgng write --dry-run`
+- `bgng scan --json`
 - `bgng skills packages list --json`
 
 ## User Environment Assumptions

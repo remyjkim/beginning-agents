@@ -10,7 +10,7 @@ This lets a project:
 - add project-local MCP server definitions
 - enable extensions locally
 - enable or disable targets locally
-- include or exclude skills during sync
+- include or exclude skills during write
 
 Without per-project config, `bgng` uses the packaged or checkout harness defaults plus the current machine state.
 
@@ -32,10 +32,9 @@ This means:
 
 Commands affected by project discovery include:
 
-- `bgng sync`
-- `bgng skills sync`
+- `bgng write`
 - `bgng mcp list`
-- `bgng mcp sync`
+- `bgng mcp write`
 - `bgng status`
 - `bgng doctor`
 - `bgng extensions status`
@@ -144,13 +143,13 @@ Example:
 }
 ```
 
-This disables Codex for sync from that project context without changing the machine-wide harness defaults.
+This disables Codex for write from that project context without changing the machine-wide harness defaults.
 
 ### Skills
 
-`skills.exclude` removes matching skills from downstream sync in that project view.
+`skills.exclude` removes matching skills from downstream write in that project view.
 
-`skills.include` adds matching skills into downstream sync for that project view.
+`skills.include` adds matching skills into downstream write for that project view.
 
 Resolution behavior:
 
@@ -160,7 +159,7 @@ Resolution behavior:
 
 ### Extensions
 
-`extensions` stores semantic project intent for named capability families. Each extension owns how that intent maps to concrete sync and setup behavior.
+`extensions` stores semantic project intent for named capability families. Each extension owns how that intent maps to concrete write and setup behavior.
 
 Use `extensions.parallel` for project-scoped Parallel support. Use `extensions.beads` for project-scoped Beads support.
 
@@ -181,7 +180,7 @@ Parallel example:
 
 Effects:
 
-- derives `parallel-web-search`, `parallel-web-extract`, `parallel-deep-research`, and `parallel-data-enrichment` during project sync
+- derives `parallel-web-search`, `parallel-web-extract`, `parallel-deep-research`, and `parallel-data-enrichment` during project write
 - does not require global skill curation
 - keeps Parallel MCP disabled unless `mcp` is `true`
 - does not install or authenticate `parallel-cli`
@@ -346,9 +345,9 @@ cd /path/to/project
 bgng init
 $EDITOR .agents/bgng/config.json
 bgng status
-bgng apply --dry-run
+bgng write --dry-run
 bgng doctor
-bgng apply
+bgng write
 ```
 
 ## Anti-Patterns

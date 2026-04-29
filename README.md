@@ -4,7 +4,7 @@
 
 `beginning-harness` is a local meta-harness for AI agent tools: one CLI to organize skills, MCP servers, extensions, defaults, project overlays, downstream tool configs, and diagnostics.
 
-Agents are only as reliable as the harness around them. `beginning-harness` makes that harness explicit, inspectable, reusable, and safe to apply.
+Agents are only as reliable as the harness around them. `beginning-harness` makes that harness explicit, inspectable, reusable, and safe to write into downstream tools.
 
 The package is `beginning-harness`. The command is `bgng`.
 
@@ -22,7 +22,7 @@ The package is `beginning-harness`. The command is `bgng`.
 
 Local agent setups tend to drift. One tool gets a new MCP server, another has an older skill directory, and a project needs a slightly different harness than the global baseline.
 
-The harness around an agent is usually scattered across dotfiles, skills, MCP configs, extension setup, local scripts, and project conventions. `beginning-harness` gives those pieces a local control plane you can inspect, version, dry-run, and apply deliberately.
+The harness around an agent is usually scattered across dotfiles, skills, MCP configs, extension setup, local scripts, and project conventions. `beginning-harness` gives those pieces a local control plane you can inspect, version, dry-run, and write deliberately.
 
 It is useful when you want:
 
@@ -85,13 +85,13 @@ Start by inspecting before writing:
 bgng status
 bgng skills list
 bgng mcp list
-bgng apply --dry-run
+bgng write --dry-run
 ```
 
-If the dry run looks right, apply the generated state:
+If the dry run looks right, write the generated state:
 
 ```bash
-bgng apply
+bgng write
 ```
 
 That first run gives you:
@@ -100,7 +100,7 @@ That first run gives you:
 - the current skill inventory
 - the active MCP inventory
 - a planned-change preview
-- an explicit apply step
+- an explicit write step
 
 For a project-specific setup, start in the project directory:
 
@@ -109,8 +109,8 @@ bgng init
 bgng add extension parallel
 bgng add skill <skill-name-or-query>
 bgng add mcp <server-name>
-bgng apply --dry-run
-bgng apply
+bgng write --dry-run
+bgng write
 ```
 
 For scripts and CI-style setup, make init explicit:
@@ -129,10 +129,10 @@ bgng init --non-interactive
 - `~/.cursor`
 - `<project>/.agents/bgng/config.json`
 
-The normal apply path is conservative:
+The normal write path is conservative:
 
-- `bgng apply --dry-run` previews changes
-- apply creates or replaces managed symlinks and generated MCP config
+- `bgng write --dry-run` previews changes
+- write creates or replaces managed symlinks and generated MCP config
 - stale downstream skill symlinks are reported, not deleted
 - `bgng doctor` reports issues without fixing them
 
@@ -144,7 +144,7 @@ Use the published package when you want the default config and CLI behavior:
 
 ```bash
 npm install -g beginning-harness
-bgng apply --dry-run
+bgng write --dry-run
 ```
 
 ### Editable Harness Source
@@ -168,6 +168,7 @@ General commands:
 
 - `bgng status`
 - `bgng doctor`
+- `bgng scan`
 - `bgng init`
 - `bgng add extension <name>`
 - `bgng add skill [name-or-query]`
@@ -181,8 +182,7 @@ General commands:
 - `bgng library defaults list`
 - `bgng library defaults add skill <skillName>`
 - `bgng library defaults add mcp <serverName>`
-- `bgng apply`
-- `bgng sync`
+- `bgng write`
 - `bgng extensions list`
 - `bgng extensions show <extensionName>`
 - `bgng extensions status [extensionName]`
@@ -193,26 +193,25 @@ General commands:
 MCP commands:
 
 - `bgng mcp list`
-- `bgng mcp apply`
-- `bgng mcp sync`
+- `bgng mcp write`
 
 Skill commands:
 
 - `bgng skills list`
 - `bgng skills curate <skillName>`
 - `bgng skills uncurate <skillName>`
-- `bgng skills sync`
 - `bgng skills packages add <packageSpec>`
 - `bgng skills packages list`
 - `bgng skills packages show <packageName>`
 
-Most inspection commands support `--json`. Sync commands support `--dry-run`.
+Most inspection commands support `--json`. Write commands support `--dry-run`.
 
 Use command help for the exact surface:
 
 ```bash
 bgng --help
-bgng apply --help
+bgng write --help
+bgng scan --help
 bgng add skill --help
 bgng library list --help
 bgng search skill --help
@@ -220,7 +219,7 @@ bgng extensions setup beads --help
 bgng skills packages add --help
 ```
 
-## How Apply Works
+## How Write Works
 
 The core model has five layers:
 
@@ -230,28 +229,26 @@ The core model has five layers:
 - project overlay: current-project overrides under `<project>/.agents/bgng/config.json`
 - downstream state: Claude, Codex, Cursor, and generated MCP config files
 
-`bgng apply` materializes both MCP and skills:
+`bgng write` resolves the effective harness state, then writes MCP configuration and skill links into downstream local agent tool config and skill directories. Use `--dry-run` to preview writes before mutating files:
 
 ```bash
-bgng apply --dry-run
-bgng apply
+bgng write --dry-run
+bgng write
 ```
 
 Run only one side when needed:
 
 ```bash
-bgng apply --mcp-only
-bgng apply --skills-only
+bgng write --mcp-only
+bgng write --skills-only
 ```
 
-Limit apply to one target:
+Limit write to one target:
 
 ```bash
-bgng apply --target=claude
-bgng mcp apply --target=cursor
+bgng write --target=claude
+bgng mcp write --target=cursor
 ```
-
-`bgng sync`, `bgng mcp sync`, and `bgng skills sync` remain supported compatibility and advanced commands.
 
 ## MCP Registry
 
@@ -266,11 +263,11 @@ bgng mcp list
 bgng mcp list --json
 ```
 
-Apply active MCP state:
+Write active MCP state:
 
 ```bash
-bgng mcp apply --dry-run
-bgng mcp apply
+bgng mcp write --dry-run
+bgng mcp write
 ```
 
 Notes:
@@ -300,11 +297,11 @@ Typical built-in skill flow:
 ```bash
 bgng skills list
 bgng skills curate <skillName>
-bgng apply --skills-only --dry-run
-bgng apply --skills-only
+bgng write --skills-only --dry-run
+bgng write --skills-only
 ```
 
-Only shared skills can be curated into `~/.agents/skills`. Claude-only and Codex-only skills sync directly to their target-specific skill directories.
+Only shared skills can be curated into `~/.agents/skills`. Claude-only and Codex-only skills are written directly to their target-specific skill directories.
 
 ## Extension Skill Bundles
 
@@ -317,8 +314,8 @@ bgng library add skill <npm-package-or-local-path>
 bgng library list skills
 bgng library show <skillName>
 bgng add skill <skillName>
-bgng apply --dry-run
-bgng apply
+bgng write --dry-run
+bgng write
 ```
 
 Global curation remains useful when a shared skill should be available by default across projects:
@@ -326,16 +323,16 @@ Global curation remains useful when a shared skill should be available by defaul
 ```bash
 bgng skills packages add <npm-package-or-local-path>
 bgng skills curate <skillName>
-bgng apply --skills-only
+bgng write --skills-only
 ```
 
 The distinction matters:
 
 - added means the bundle is available under `~/.agents/packages/skills`
 - curated means a shared skill is linked into `~/.agents/skills`
-- synced means the curated skill is linked into downstream tool directories
+- written means the curated skill is linked into downstream tool directories
 
-Current package-backed bundle support includes add, list, show, inventory, curation, and sync. Update and remove lifecycle commands are intentionally not part of the first implementation.
+Current package-backed bundle support includes add, list, show, inventory, curation, and downstream write. Update and remove lifecycle commands are intentionally not part of the first implementation.
 
 ## Extensions
 
@@ -359,7 +356,7 @@ Current extensions:
 
 ### Parallel
 
-Parallel support is CLI+skills-first. Selecting the extension for one project writes semantic config under `<project>/.agents/bgng/config.json`; `bgng sync` then derives the four Parallel skills for that project without requiring global skill curation.
+Parallel support is CLI+skills-first. Selecting the extension for one project writes semantic config under `<project>/.agents/bgng/config.json`; `bgng write` then derives the four Parallel skills for that project without requiring global skill curation.
 
 Preview setup:
 
@@ -411,7 +408,7 @@ Useful flags:
 - `--stealth` passes Beads stealth setup mode through to `bd`
 - `--skip-bd-init` skips `bd init`
 - `--skip-bd-setup` skips `bd setup`
-- `--include-skill` sets `extensions.beads.includeSkill: true` so sync derives `beads-task-tracking`
+- `--include-skill` sets `extensions.beads.includeSkill: true` so write derives `beads-task-tracking`
 
 Setup never runs `bd init --force` or `bd doctor --fix` by default. Beads MCP remains optional and is not enabled by `bgng extensions setup beads`.
 
@@ -437,10 +434,10 @@ Project config can:
 - enable or disable MCP servers for one project
 - add project-local MCP server definitions
 - enable extensions such as Parallel or Beads for one project
-- include or exclude skills during sync
+- include or exclude skills during write
 - enable or disable targets locally
 
-Project config is applied by `bgng apply`, `bgng sync`, `bgng skills sync`, `bgng mcp list`, `bgng mcp apply`, `bgng mcp sync`, `bgng status`, `bgng doctor`, and extension status/doctor/setup commands.
+Project config is used by `bgng write`, `bgng mcp list`, `bgng mcp write`, `bgng status`, `bgng doctor`, and extension status/doctor/setup commands.
 
 Discovery walks upward from the current working directory and uses the nearest config file.
 
@@ -448,7 +445,7 @@ Useful workflow:
 
 ```bash
 bgng status
-bgng apply --dry-run
+bgng write --dry-run
 bgng doctor
 ```
 
@@ -492,20 +489,6 @@ It reports:
 - project config issues
 
 It does not mutate local state.
-
-## Compatibility Wrapper
-
-The legacy sync entrypoint remains available from a repo checkout:
-
-```bash
-bun run sync-mcp.ts
-bun run sync-mcp.ts --dry-run
-bun run sync-mcp.ts --mcp-only
-bun run sync-mcp.ts --skills-only
-bun run sync-mcp.ts --target=claude
-```
-
-New workflows should prefer `bgng`, but `sync-mcp.ts` stays wired to the same extracted core modules.
 
 ## Optional Extensions
 
@@ -559,7 +542,7 @@ To enable the optional Parallel MCP overlay, edit [config.json](./config.json):
 Then run:
 
 ```bash
-bgng mcp apply
+bgng mcp write
 ```
 
 ### Markdownify
@@ -582,13 +565,13 @@ The safety model is intentionally simple:
 - preview first with `--dry-run`
 - inspect machine state with `status`
 - diagnose drift with `doctor`
-- curate skills explicitly before syncing them
+- curate skills explicitly before writing them downstream
 - treat package-backed bundles as available content, not automatically exposed behavior
 - keep cleanup report-only until a command explicitly supports repair or pruning
 
 ## Contributing
 
-Community contributions are welcome when they preserve the conservative sync model and include tests for behavior changes.
+Community contributions are welcome when they preserve the conservative write model and include tests for behavior changes.
 
 Start with:
 
