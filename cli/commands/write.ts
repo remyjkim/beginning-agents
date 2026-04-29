@@ -1,21 +1,21 @@
-// ABOUTME: Implements the top-level `bgng sync` command as a convenience wrapper over full sync behavior.
-// ABOUTME: Mirrors the legacy sync-mcp entrypoint for easier migration while using the extracted core modules.
+// ABOUTME: Implements the primary `bgng write` command over the materialization engine.
+// ABOUTME: Provides the one-way operator vocabulary for writing effective state downstream.
 
 import { Option, UsageError } from "clipanion";
 import { renderJson, renderSyncResult } from "../core/output";
 import { syncRepository } from "../core/sync";
 import { BaseCommand } from "./base";
 
-export class SyncCommand extends BaseCommand {
-  static override paths = [["sync"]];
+export class WriteCommand extends BaseCommand {
+  static override paths = [["write"]];
 
   static override usage = BaseCommand.Usage({
     category: "General",
-    description: "Run both MCP and skill sync in one command.",
+    description: "Write effective bgng config to downstream local agent tools.",
   });
 
   dryRun = Option.Boolean("--dry-run", false, {
-    description: "Preview changes without writing.",
+    description: "Preview writes without writing.",
   });
 
   json = Option.Boolean("--json", false, {
@@ -23,15 +23,15 @@ export class SyncCommand extends BaseCommand {
   });
 
   mcpOnly = Option.Boolean("--mcp-only", false, {
-    description: "Sync only MCP configuration.",
+    description: "Write only MCP configuration.",
   });
 
   skillsOnly = Option.Boolean("--skills-only", false, {
-    description: "Sync only skills.",
+    description: "Write only skills.",
   });
 
   target = Option.String("--target", {
-    description: "Limit sync to one target.",
+    description: "Limit write to one target.",
   });
 
   async execute() {

@@ -54,7 +54,7 @@ export class LibraryDefaultsAddMcpCommand extends BaseCommand {
       scope: "global-default",
       action: alreadyDefault ? "already-default" : "added",
       configPath: path,
-      next: ["bgng apply --dry-run"],
+      next: ["bgng write --dry-run"],
     };
 
     if (this.json) {
@@ -70,7 +70,7 @@ export class LibraryDefaultsAddMcpCommand extends BaseCommand {
         ...(this.dryRun ? [`Would update ${path}`] : [`Updated ${path}`]),
         "",
         "Next:",
-        "  bgng apply --dry-run",
+        "  bgng write --dry-run",
       ].join("\n") + "\n",
     );
     return 0;

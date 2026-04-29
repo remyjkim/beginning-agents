@@ -1,17 +1,17 @@
-// ABOUTME: Implements the target `bgng apply` command over the sync engine.
-// ABOUTME: Provides clearer one-way materialization vocabulary while keeping sync compatible.
+// ABOUTME: Implements `bgng mcp write` as the MCP-scoped alias for top-level write.
+// ABOUTME: Keeps advanced MCP users in the MCP namespace while sharing the materialization engine.
 
 import { Option, UsageError } from "clipanion";
-import { renderJson, renderSyncResult } from "../core/output";
-import { syncRepository } from "../core/sync";
-import { BaseCommand } from "./base";
+import { renderJson, renderSyncResult } from "../../core/output";
+import { syncRepository } from "../../core/sync";
+import { BaseCommand } from "../base";
 
-export class ApplyCommand extends BaseCommand {
-  static override paths = [["apply"]];
+export class McpWriteCommand extends BaseCommand {
+  static override paths = [["mcp", "write"]];
 
   static override usage = BaseCommand.Usage({
-    category: "General",
-    description: "Apply effective bgng config to downstream tools.",
+    category: "MCP",
+    description: "Write effective MCP configuration into enabled targets.",
   });
 
   dryRun = Option.Boolean("--dry-run", false, {
@@ -22,22 +22,11 @@ export class ApplyCommand extends BaseCommand {
     description: "Emit machine-readable JSON output.",
   });
 
-  mcpOnly = Option.Boolean("--mcp-only", false, {
-    description: "Apply only MCP configuration.",
-  });
-
-  skillsOnly = Option.Boolean("--skills-only", false, {
-    description: "Apply only skills.",
-  });
-
   target = Option.String("--target", {
-    description: "Limit apply to one target.",
+    description: "Write only one target.",
   });
 
   async execute() {
-    if (this.mcpOnly && this.skillsOnly) {
-      throw new UsageError("Use either --mcp-only or --skills-only, not both.");
-    }
     if (this.target && this.target !== "claude" && this.target !== "codex" && this.target !== "cursor") {
       throw new UsageError(`Unsupported target: ${this.target}`);
     }
@@ -48,8 +37,7 @@ export class ApplyCommand extends BaseCommand {
       homeDir: this.context.homeDir,
       cwd: this.context.cwd,
       dryRun: this.dryRun,
-      mcpOnly: this.mcpOnly,
-      skillsOnly: this.skillsOnly,
+      mcpOnly: true,
       target: this.target as "claude" | "codex" | "cursor" | undefined,
     });
 

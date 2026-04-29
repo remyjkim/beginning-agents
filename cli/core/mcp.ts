@@ -1,4 +1,4 @@
-// ABOUTME: Implements harness MCP filtering and target-specific rendering for all sync surfaces.
+// ABOUTME: Implements harness MCP filtering and target-specific rendering for all write surfaces.
 // ABOUTME: Shared by bgng commands and the legacy sync-mcp compatibility wrapper.
 
 import { parse as parseToml, stringify as stringifyToml } from "smol-toml";

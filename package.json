@@ -21,7 +21,6 @@
     "config.json",
     "mcp-servers.json",
     "skills",
-    "sync-mcp.ts",
     "README.md",
     "the-beginning-harness.png",
     "LICENSE",
@@ -40,7 +39,6 @@
   ],
   "scripts": {
     "bgng": "bun run cli/index.ts",
-    "sync": "bun run sync-mcp.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "verify:release": "bun run scripts/verify-release-readiness.ts"

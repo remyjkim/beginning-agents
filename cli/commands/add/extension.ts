@@ -52,7 +52,7 @@ export class AddExtensionCommand extends BaseCommand {
     const projectDir = this.context.cwd;
     const configPath = projectConfigPath(projectDir);
     let extensionConfig;
-    const next: string[] = ["bgng apply --dry-run"];
+    const next: string[] = ["bgng write --dry-run"];
 
     if (this.extensionName === "parallel") {
       extensionConfig = buildParallelProjectConfig({ skills: !this.skipSkills, mcp: this.mcp });

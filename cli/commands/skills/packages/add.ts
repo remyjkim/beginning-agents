@@ -1,5 +1,5 @@
 // ABOUTME: Implements bgng skills packages add for installing package-backed skill bundles into ~/.agents.
-// ABOUTME: Keeps package-backed skills as available sources only; curation and sync remain separate steps.
+// ABOUTME: Keeps package-backed skills as available sources only; curation and write remain separate steps.
 
 import { Option, UsageError } from "clipanion";
 import { buildSkillInventory } from "../../../../cli/core/skills";

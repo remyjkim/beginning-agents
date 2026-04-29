@@ -1,5 +1,5 @@
 // ABOUTME: Builds the local reusable library view used by add/search/library commands.
-// ABOUTME: Keeps user-facing inventory separate from downstream sync and curation mechanics.
+// ABOUTME: Keeps user-facing inventory separate from downstream write and curation mechanics.
 
 import { loadRegistry } from "./registry";
 import { loadMcpLibrary } from "./mcp-library";

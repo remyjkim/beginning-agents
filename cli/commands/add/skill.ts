@@ -117,7 +117,7 @@ export class AddSkillCommand extends BaseCommand {
       projectConfigPath: configPath,
       libraryChanges,
       projectChanges: skillIds.map((id) => ({ kind: "skill", id, action: "included" })),
-      next: ["bgng apply --dry-run"],
+      next: ["bgng write --dry-run"],
     };
 
     if (!this.dryRun) {
@@ -137,7 +137,7 @@ export class AddSkillCommand extends BaseCommand {
         ...(this.dryRun ? [`Would update ${configPath}`] : [`Updated ${configPath}`]),
         "",
         "Next:",
-        "  bgng apply --dry-run",
+        "  bgng write --dry-run",
       ].join("\n") + "\n",
     );
     return 0;

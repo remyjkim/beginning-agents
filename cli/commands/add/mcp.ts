@@ -85,7 +85,7 @@ export class AddMcpCommand extends BaseCommand {
       projectConfigPath: configPath,
       projectChanges: alreadyDefault ? [] : [{ kind: "mcp", id, action: "enabled" }],
       requiredEnv: [...requiredEnv],
-      next: ["bgng apply --dry-run"],
+      next: ["bgng write --dry-run"],
     };
 
     if (!this.dryRun && !alreadyDefault) {
@@ -104,7 +104,7 @@ export class AddMcpCommand extends BaseCommand {
             "No project override needed.",
             "",
             "Next:",
-            "  bgng apply --dry-run",
+            "  bgng write --dry-run",
           ].join("\n") + "\n"
         : [
             `Added ${id} to this project.`,
@@ -112,7 +112,7 @@ export class AddMcpCommand extends BaseCommand {
             ...([...requiredEnv].length > 0 ? [`Required environment: ${[...requiredEnv].join(", ")}`] : []),
             "",
             "Next:",
-            "  bgng apply --dry-run",
+            "  bgng write --dry-run",
           ].join("\n") + "\n",
     );
     return 0;

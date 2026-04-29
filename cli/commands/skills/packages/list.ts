@@ -1,5 +1,5 @@
 // ABOUTME: Implements bgng skills packages list for inspecting installed package-backed skill bundles.
-// ABOUTME: Exposes the managed ~/.agents package cache without conflating it with curation or downstream sync.
+// ABOUTME: Exposes the managed ~/.agents package cache without conflating it with curation or downstream write.
 
 import { Option } from "clipanion";
 import { renderJson, renderTable } from "../../../../cli/core/output";

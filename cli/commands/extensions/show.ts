@@ -1,5 +1,5 @@
 // ABOUTME: Implements bgng extensions show for inspecting one extension definition.
-// ABOUTME: Keeps extension details discoverable before setup or sync changes are made.
+// ABOUTME: Keeps extension details discoverable before setup or write changes are made.
 
 import { Option, UsageError } from "clipanion";
 import { getExtension } from "../../core/extensions/registry";

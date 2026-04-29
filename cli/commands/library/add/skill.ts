@@ -39,7 +39,7 @@ export class LibraryAddSkillCommand extends BaseCommand {
             "",
             "Next:",
             "  bgng add skill <skill-name>",
-            "  bgng apply --dry-run",
+            "  bgng write --dry-run",
           ].join("\n") + "\n",
         );
       }
