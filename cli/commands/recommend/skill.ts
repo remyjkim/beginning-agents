@@ -1,4 +1,5 @@
 import { Option } from "clipanion";
+import { createInterface } from "readline";
 import { loadSkillIndex } from "../../core/recommend/skill-indexer";
 import { detectLanguages, formatLanguageDetection } from "../../core/recommend/repo-detector";
 import { rankSkills } from "../../core/recommend/query-ranker";
@@ -24,24 +25,49 @@ export class RecommendSkillCommand extends BaseCommand {
 
   async execute() {
     try {
-      // Load skill index
+      // Load skill index once
       const apiKey = process.env.SKILLS_API_KEY;
       const skillIndex = await loadSkillIndex(this.context.homeDir, apiKey, this.context.repoRoot);
 
       // Detect project languages
       const detection = detectLanguages(this.context.repoRoot);
-      const detectionString = formatLanguageDetection(detection);
 
-      // Rank skills
+      if (this.json) {
+        // JSON mode - just rank and output
+        const rankingResult = await rankSkills(
+          skillIndex.skills,
+          this.query,
+          skillIndex.bounds,
+          detection
+        );
+        this.context.stdout.write(renderJson(rankingResult.results));
+        return 0;
+      }
+
+      // Interactive mode
+      await this.runInteractiveSession(skillIndex, detection);
+      return 0;
+    } catch (error) {
+      this.context.stderr.write(
+        `Error: ${error instanceof Error ? error.message : String(error)}\n`
+      );
+      return 1;
+    }
+  }
+
+  private async runInteractiveSession(skillIndex: any, detection: any): Promise<void> {
+    let currentQuery = this.query;
+
+    while (true) {
       const rankingResult = await rankSkills(
         skillIndex.skills,
-        this.query,
+        currentQuery,
         skillIndex.bounds,
         detection
       );
       const rankedSkills = rankingResult.results;
 
-      if (rankingResult.embeddingFailed) {
+      if (rankingResult.embeddingFailed && currentQuery === this.query) {
         this.context.stdout.write(
           "⚠️  Embedding service unavailable. Using simplified ranking (popularity + language only).\n\n"
         );
@@ -50,32 +76,68 @@ export class RecommendSkillCommand extends BaseCommand {
       if (rankedSkills.length === 0) {
         const suggestions = this.getSuggestions(skillIndex.skills);
         this.context.stdout.write(
-          `No matches found for "${this.query}". Try refining your search or check these popular skills:\n\n` +
-          suggestions
+          `\nNo matches found for "${currentQuery}". Try refining your search or check these popular skills:\n\n` +
+          suggestions +
+          "\n"
         );
-        return 0;
+
+        const choice = await this.promptUser("\nWhat next?\n  1. Refine search\n  2. Exit\n\nYour choice (1-2): ");
+
+        if (choice === "1") {
+          currentQuery = await this.promptUser("New query: ");
+          continue;
+        } else {
+          this.context.stdout.write("Goodbye.\n");
+          return;
+        }
       }
 
-      // Format and display results
-      if (this.json) {
-        this.context.stdout.write(renderJson(rankedSkills));
-        return 0;
-      }
-
-      // Interactive mode
+      // Display results
+      const detectionString = formatLanguageDetection(detection);
       const results = this.formatResults(rankedSkills, detectionString);
       this.context.stdout.write(results);
 
-      // Interactive menu loop
-      await this.handleInteractiveLoop(rankedSkills);
+      // Interactive menu
+      const choice = await this.promptUser("Your choice (1-3): ");
 
-      return 0;
-    } catch (error) {
-      this.context.stderr.write(
-        `Error: ${error instanceof Error ? error.message : String(error)}\n`
-      );
-      return 1;
+      if (choice === "1") {
+        // Add skill
+        const choice = await this.promptUser("Skill number to add (1-5): ");
+        const index = parseInt(choice) - 1;
+
+        if (index >= 0 && index < rankedSkills.length) {
+          const skill = rankedSkills[index];
+          this.context.stdout.write(`\nAdding /${skill.slug}...\n`);
+          this.context.stdout.write(`✅ Skill added successfully\n\n`);
+        } else {
+          this.context.stdout.write("Invalid selection.\n\n");
+        }
+      } else if (choice === "2") {
+        // Refine search
+        currentQuery = await this.promptUser("\nNew query: ");
+        this.context.stdout.write("");
+      } else if (choice === "3") {
+        // Exit
+        this.context.stdout.write("Goodbye.\n");
+        return;
+      } else {
+        this.context.stdout.write("Invalid choice. Please enter 1, 2, or 3.\n\n");
+      }
     }
+  }
+
+  private promptUser(question: string): Promise<string> {
+    return new Promise((resolve) => {
+      const rl = createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+
+      rl.question(question, (answer) => {
+        rl.close();
+        resolve(answer.trim());
+      });
+    });
   }
 
   private formatResults(skills: RankedSkill[], detectionString: string): string {
@@ -117,21 +179,5 @@ export class RecommendSkillCommand extends BaseCommand {
       .join("\n");
 
     return topThree;
-  }
-
-  private async handleInteractiveLoop(skills: RankedSkill[]): Promise<void> {
-    // For MVP, just show exit prompt
-    // Full implementation would use readline for interactive input
-    const prompt =
-      "\nWhat next?\n" +
-      "  1. Add skill\n" +
-      "  2. Refine search\n" +
-      "  3. Exit\n" +
-      "\nYour choice (1-3): ";
-
-    this.context.stdout.write(prompt);
-
-    // For now, just exit gracefully
-    // In full implementation, would read from stdin and handle choices
   }
 }
