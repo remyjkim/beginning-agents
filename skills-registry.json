@@ -1,0 +1,132 @@
+{
+  "skills": [
+    {
+      "slug": "test-coverage",
+      "name": "test-coverage",
+      "description": "Track code coverage in your TypeScript and JavaScript projects. Measure test completeness and identify untested code paths.",
+      "installCount": 14200,
+      "githubStars": 892,
+      "lastUpdated": "2026-04-15T10:32:00Z",
+      "languages": ["TypeScript", "JavaScript"],
+      "embedding": [],
+      "domain": "testing"
+    },
+    {
+      "slug": "tdd-workflow",
+      "name": "tdd-workflow",
+      "description": "Test-driven development patterns and practices. Write tests first, then implementation. Improve code quality through TDD methodology.",
+      "installCount": 8500,
+      "githubStars": 421,
+      "lastUpdated": "2026-04-12T14:22:00Z",
+      "languages": ["TypeScript", "JavaScript"],
+      "embedding": [],
+      "domain": "testing"
+    },
+    {
+      "slug": "python-testing",
+      "name": "python-testing",
+      "description": "Python testing frameworks and utilities. Unit testing, integration testing, and test fixtures for Python projects.",
+      "installCount": 6100,
+      "githubStars": 312,
+      "lastUpdated": "2026-04-10T09:15:00Z",
+      "languages": ["Python"],
+      "embedding": [],
+      "domain": "testing"
+    },
+    {
+      "slug": "security-audit",
+      "name": "security-audit",
+      "description": "Security vulnerability scanning and auditing tools. Detect security issues in dependencies and code before production deployment.",
+      "installCount": 11200,
+      "githubStars": 756,
+      "lastUpdated": "2026-04-18T16:45:00Z",
+      "languages": ["TypeScript", "JavaScript", "Python"],
+      "embedding": [],
+      "domain": "security"
+    },
+    {
+      "slug": "performance-profiler",
+      "name": "performance-profiler",
+      "description": "Profile and optimize application performance. Identify bottlenecks, measure throughput, analyze memory usage and CPU utilization.",
+      "installCount": 9800,
+      "githubStars": 634,
+      "lastUpdated": "2026-04-16T11:20:00Z",
+      "languages": ["TypeScript", "JavaScript", "Python", "Go"],
+      "embedding": [],
+      "domain": "performance"
+    },
+    {
+      "slug": "code-formatter",
+      "name": "code-formatter",
+      "description": "Automatic code formatting and style enforcement. Keep codebases consistent and readable across teams and projects.",
+      "installCount": 22500,
+      "githubStars": 1245,
+      "lastUpdated": "2026-04-14T13:30:00Z",
+      "languages": ["TypeScript", "JavaScript", "Python"],
+      "embedding": [],
+      "domain": "code-quality"
+    },
+    {
+      "slug": "linter-config",
+      "name": "linter-config",
+      "description": "Comprehensive linting configuration and rules. Catch errors early and enforce best practices in your codebase.",
+      "installCount": 18900,
+      "githubStars": 987,
+      "lastUpdated": "2026-04-13T10:45:00Z",
+      "languages": ["TypeScript", "JavaScript"],
+      "embedding": [],
+      "domain": "code-quality"
+    },
+    {
+      "slug": "documentation-generator",
+      "name": "documentation-generator",
+      "description": "Automatically generate API documentation from code comments and type definitions. Keep docs in sync with implementation.",
+      "installCount": 5600,
+      "githubStars": 298,
+      "lastUpdated": "2026-04-11T15:10:00Z",
+      "languages": ["TypeScript", "JavaScript"],
+      "embedding": [],
+      "domain": "documentation"
+    },
+    {
+      "slug": "deployment-pipeline",
+      "name": "deployment-pipeline",
+      "description": "Continuous integration and deployment automation. Build, test, and deploy applications reliably to production.",
+      "installCount": 12400,
+      "githubStars": 845,
+      "lastUpdated": "2026-04-17T09:25:00Z",
+      "languages": ["TypeScript", "JavaScript", "Python", "Go"],
+      "embedding": [],
+      "domain": "deployment"
+    },
+    {
+      "slug": "debugging-tools",
+      "name": "debugging-tools",
+      "description": "Advanced debugging utilities and inspection tools. Trace execution, inspect state, and quickly locate bugs in your code.",
+      "installCount": 7300,
+      "githubStars": 512,
+      "lastUpdated": "2026-04-09T12:05:00Z",
+      "languages": ["TypeScript", "JavaScript", "Python"],
+      "embedding": [],
+      "domain": "debugging"
+    },
+    {
+      "slug": "cli-toolkit",
+      "name": "cli-toolkit",
+      "description": "Build command-line interfaces with ease. Framework and utilities for creating powerful CLI applications and tools.",
+      "installCount": 15600,
+      "githubStars": 923,
+      "lastUpdated": "2026-04-19T14:50:00Z",
+      "languages": ["TypeScript", "JavaScript"],
+      "embedding": [],
+      "domain": "patterns"
+    }
+  ],
+  "metadata": {
+    "count": 11,
+    "popularity_min_installs": 100,
+    "popularity_max_installs": 250000,
+    "popularity_min_stars": 10,
+    "popularity_max_stars": 150000
+  }
+}

@@ -102,8 +102,7 @@ async function generateEmbedding(text: string): Promise<number[]> {
   }
 }
 
-function loadLocalFallback(): { skills: Skill[]; bounds: PopularityBounds } {
-  // Default fallback with 28 skills based on prd_phase1_steps.md
+function loadLocalFallback(repoRoot: string): { skills: Skill[]; bounds: PopularityBounds } {
   const defaultBounds: PopularityBounds = {
     installs: {
       min_log: Math.log10(100 + 1),
@@ -115,6 +114,49 @@ function loadLocalFallback(): { skills: Skill[]; bounds: PopularityBounds } {
     },
   };
 
+  // Try to load from local skills-registry.json
+  try {
+    const registryPath = join(repoRoot, "skills-registry.json");
+    if (existsSync(registryPath)) {
+      const content = readFileSync(registryPath, "utf-8");
+      const data = JSON.parse(content) as {
+        skills: Array<Omit<Skill, "embedding">>;
+        metadata: {
+          count: number;
+          popularity_min_installs: number;
+          popularity_max_installs: number;
+          popularity_min_stars: number;
+          popularity_max_stars: number;
+        };
+      };
+
+      // Compute bounds from metadata
+      const bounds: PopularityBounds = {
+        installs: {
+          min_log: Math.log10(data.metadata.popularity_min_installs + 1),
+          max_log: Math.log10(data.metadata.popularity_max_installs + 1),
+        },
+        stars: {
+          min_log: Math.log10(data.metadata.popularity_min_stars + 1),
+          max_log: Math.log10(data.metadata.popularity_max_stars + 1),
+        },
+      };
+
+      // Add mock embeddings (will be replaced by real Mastra AI)
+      const skillsWithEmbeddings: Skill[] = data.skills.map((skill) => ({
+        ...skill,
+        embedding: Array(EMBEDDING_DIM).fill(0).map(() => Math.random() * 2 - 1),
+      }));
+
+      return {
+        skills: skillsWithEmbeddings,
+        bounds,
+      };
+    }
+  } catch (error) {
+    console.error(`Failed to load local skills registry: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
   return {
     skills: [],
     bounds: defaultBounds,
@@ -123,7 +165,8 @@ function loadLocalFallback(): { skills: Skill[]; bounds: PopularityBounds } {
 
 export async function loadSkillIndex(
   homeDir: string,
-  apiKey?: string
+  apiKey?: string,
+  repoRoot?: string
 ): Promise<SkillIndex> {
   const cachePath = getCachePath(homeDir);
 
@@ -146,10 +189,10 @@ export async function loadSkillIndex(
       result = await fetchSkillsFromApi(apiKey);
     } catch (error) {
       console.warn(`Failed to fetch from Skills-API: ${error instanceof Error ? error.message : String(error)}`);
-      result = loadLocalFallback();
+      result = loadLocalFallback(repoRoot || homeDir);
     }
   } else {
-    result = loadLocalFallback();
+    result = loadLocalFallback(repoRoot || homeDir);
   }
 
   // Cache the result

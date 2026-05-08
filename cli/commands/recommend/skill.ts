@@ -26,7 +26,7 @@ export class RecommendSkillCommand extends BaseCommand {
     try {
       // Load skill index
       const apiKey = process.env.SKILLS_API_KEY;
-      const skillIndex = await loadSkillIndex(this.context.homeDir, apiKey);
+      const skillIndex = await loadSkillIndex(this.context.homeDir, apiKey, this.context.repoRoot);
 
       // Detect project languages
       const detection = detectLanguages(this.context.repoRoot);
