@@ -33,15 +33,26 @@ export class RecommendSkillCommand extends BaseCommand {
       const detectionString = formatLanguageDetection(detection);
 
       // Rank skills
-      const rankedSkills = await rankSkills(
+      const rankingResult = await rankSkills(
         skillIndex.skills,
         this.query,
         skillIndex.bounds,
         detection
       );
+      const rankedSkills = rankingResult.results;
+
+      if (rankingResult.embeddingFailed) {
+        this.context.stdout.write(
+          "⚠️  Embedding service unavailable. Using simplified ranking (popularity + language only).\n\n"
+        );
+      }
 
       if (rankedSkills.length === 0) {
-        this.context.stdout.write("No matching skills found. Try refining your query.\n");
+        const suggestions = this.getSuggestions(skillIndex.skills);
+        this.context.stdout.write(
+          `No matches found for "${this.query}". Try refining your search or check these popular skills:\n\n` +
+          suggestions
+        );
         return 0;
       }
 
@@ -95,6 +106,17 @@ export class RecommendSkillCommand extends BaseCommand {
     }
 
     return lines.join("\n");
+  }
+
+  private getSuggestions(skills: Skill[]): string {
+    // Return top 3 most popular skills
+    const topThree = skills
+      .sort((a, b) => b.installCount - a.installCount)
+      .slice(0, 3)
+      .map((skill, index) => `${index + 1}. /${skill.slug} (${skill.installCount.toLocaleString()} installs)`)
+      .join("\n");
+
+    return topThree;
   }
 
   private async handleInteractiveLoop(skills: RankedSkill[]): Promise<void> {

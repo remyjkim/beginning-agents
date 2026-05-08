@@ -17,19 +17,28 @@ const WEIGHTS = {
 
 const EMBEDDING_DIM = 512;
 
-async function generateQueryEmbedding(text: string): Promise<number[]> {
+export class EmbeddingError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "EmbeddingError";
+  }
+}
+
+async function generateQueryEmbedding(text: string): Promise<number[] | null> {
   const mastraKey = process.env.MASTRA_API_KEY;
 
   if (!mastraKey) {
-    // Mock embedding for now
-    return Array(EMBEDDING_DIM).fill(0).map(() => Math.random() * 2 - 1);
+    // No API key - return null to trigger graceful degradation
+    return null;
   }
 
   try {
     // TODO: Call actual Mastra AI API
     return Array(EMBEDDING_DIM).fill(0).map(() => Math.random() * 2 - 1);
-  } catch {
-    return Array(EMBEDDING_DIM).fill(0).map(() => Math.random() * 2 - 1);
+  } catch (error) {
+    // Return null on API error to trigger graceful degradation
+    console.warn(`Embedding API error: ${error instanceof Error ? error.message : String(error)}`);
+    return null;
   }
 }
 
@@ -98,32 +107,55 @@ export async function rankSkills(
   query: string,
   bounds: PopularityBounds,
   detection: LanguageDetection
-): Promise<RankedSkill[]> {
+): Promise<{ results: RankedSkill[]; embeddingFailed: boolean }> {
   // Expand query (3 hidden iterations)
   const queries = await expandQuery(query);
 
   // Generate embeddings for all query variations
   const queryEmbeddings = await Promise.all(queries.map((q) => generateQueryEmbedding(q)));
 
+  // Check if embeddings failed
+  const embeddingFailed = queryEmbeddings.some((e) => e === null);
+  const validEmbeddings = queryEmbeddings.filter((e) => e !== null) as number[][];
+
   // Score each skill across all query iterations
   const skillScores = new Map<string, { skill: Skill; scores: number[] }>();
 
-  for (let i = 0; i < queries.length; i++) {
-    const queryEmbedding = queryEmbeddings[i];
+  if (!embeddingFailed && validEmbeddings.length > 0) {
+    // Normal path: use semantic + popularity + language
+    for (let i = 0; i < queries.length; i++) {
+      const queryEmbedding = queryEmbeddings[i];
+      if (!queryEmbedding) continue;
 
+      for (const skill of skills) {
+        const semantic = cosineSimilarity(queryEmbedding, skill.embedding);
+
+        // Skip if semantic similarity below threshold
+        if (semantic < SEMANTIC_THRESHOLD) continue;
+
+        const popularity = calculatePopularityScore(skill, bounds);
+        const language = calculateLanguageScore(skill, detection);
+
+        const finalScore =
+          WEIGHTS.semantic * semantic +
+          WEIGHTS.popularity * popularity +
+          WEIGHTS.language * language;
+
+        if (!skillScores.has(skill.slug)) {
+          skillScores.set(skill.slug, { skill, scores: [] });
+        }
+        skillScores.get(skill.slug)!.scores.push(finalScore);
+      }
+    }
+  } else if (embeddingFailed) {
+    // Degraded path: use semantic (from cached embedding) + language only
+    // Fall back to language + popularity only (no semantic embedding)
     for (const skill of skills) {
-      const semantic = cosineSimilarity(queryEmbedding, skill.embedding);
-
-      // Skip if semantic similarity below threshold
-      if (semantic < SEMANTIC_THRESHOLD) continue;
-
-      const popularity = calculatePopularityScore(skill, bounds);
       const language = calculateLanguageScore(skill, detection);
+      const popularity = calculatePopularityScore(skill, bounds);
 
-      const finalScore =
-        WEIGHTS.semantic * semantic +
-        WEIGHTS.popularity * popularity +
-        WEIGHTS.language * language;
+      // Simplified scoring: language (0.5) + popularity (0.5) without semantic
+      const finalScore = 0.5 * popularity + 0.5 * language;
 
       if (!skillScores.has(skill.slug)) {
         skillScores.set(skill.slug, { skill, scores: [] });
@@ -136,7 +168,9 @@ export async function rankSkills(
   const rankedSkills: RankedSkill[] = Array.from(skillScores.values()).map(
     ({ skill, scores }) => {
       const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-      const avgSemantic = cosineSimilarity(queryEmbeddings[0], skill.embedding); // Use first embedding as reference
+      const avgSemantic = validEmbeddings.length > 0
+        ? cosineSimilarity(validEmbeddings[0], skill.embedding)
+        : 0;
       const popularity = calculatePopularityScore(skill, bounds);
       const language = calculateLanguageScore(skill, detection);
 
@@ -151,5 +185,8 @@ export async function rankSkills(
   );
 
   // Sort by score and return top-5
-  return rankedSkills.sort((a, b) => b.score - a.score).slice(0, 5);
+  return {
+    results: rankedSkills.sort((a, b) => b.score - a.score).slice(0, 5),
+    embeddingFailed,
+  };
 }
