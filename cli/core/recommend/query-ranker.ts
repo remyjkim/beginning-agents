@@ -1,5 +1,9 @@
-import { Skill, PopularityBounds, cosineSimilarity } from "./skill-indexer";
-import { LanguageDetection } from "./repo-detector";
+import { cosineSimilarity } from "./skill-indexer";
+import type { Skill, PopularityBounds } from "./skill-indexer";
+import type { LanguageDetection } from "./repo-detector";
+import { hybridSimilarity, embeddingFromText } from "./embedding-local";
+import { isVectorDbAvailable } from "./mastra-client";
+import { rankSkillsVectorBased as vectorRankSkills } from "./vector-ranker";
 
 export interface RankedSkill extends Skill {
   score: number;
@@ -8,7 +12,7 @@ export interface RankedSkill extends Skill {
   language_match: number;
 }
 
-const SEMANTIC_THRESHOLD = 0.5;
+const SEMANTIC_THRESHOLD = 0.0; // No threshold - rank all skills, return top 5
 const WEIGHTS = {
   semantic: 0.6,
   popularity: 0.3,
@@ -24,22 +28,9 @@ export class EmbeddingError extends Error {
   }
 }
 
-async function generateQueryEmbedding(text: string): Promise<number[] | null> {
-  const mastraKey = process.env.MASTRA_API_KEY;
-
-  if (!mastraKey) {
-    // No API key - return null to trigger graceful degradation
-    return null;
-  }
-
-  try {
-    // TODO: Call actual Mastra AI API
-    return Array(EMBEDDING_DIM).fill(0).map(() => Math.random() * 2 - 1);
-  } catch (error) {
-    // Return null on API error to trigger graceful degradation
-    console.warn(`Embedding API error: ${error instanceof Error ? error.message : String(error)}`);
-    return null;
-  }
+function generateQueryEmbedding(text: string): number[] {
+  // Use local TF-IDF embedding (no API required)
+  return embeddingFromText(text);
 }
 
 function calculatePopularityScore(
@@ -108,54 +99,33 @@ export async function rankSkills(
   bounds: PopularityBounds,
   detection: LanguageDetection
 ): Promise<{ results: RankedSkill[]; embeddingFailed: boolean }> {
+  // Use local ranking (with Claude-extracted descriptions if available)
+  // Vector DB integration coming later
   // Expand query (3 hidden iterations)
   const queries = await expandQuery(query);
-
-  // Generate embeddings for all query variations
-  const queryEmbeddings = await Promise.all(queries.map((q) => generateQueryEmbedding(q)));
-
-  // Check if embeddings failed
-  const embeddingFailed = queryEmbeddings.some((e) => e === null);
-  const validEmbeddings = queryEmbeddings.filter((e) => e !== null) as number[][];
 
   // Score each skill across all query iterations
   const skillScores = new Map<string, { skill: Skill; scores: number[] }>();
 
-  if (!embeddingFailed && validEmbeddings.length > 0) {
-    // Normal path: use semantic + popularity + language
-    for (let i = 0; i < queries.length; i++) {
-      const queryEmbedding = queryEmbeddings[i];
-      if (!queryEmbedding) continue;
-
-      for (const skill of skills) {
-        const semantic = cosineSimilarity(queryEmbedding, skill.embedding);
-
-        // Skip if semantic similarity below threshold
-        if (semantic < SEMANTIC_THRESHOLD) continue;
-
-        const popularity = calculatePopularityScore(skill, bounds);
-        const language = calculateLanguageScore(skill, detection);
-
-        const finalScore =
-          WEIGHTS.semantic * semantic +
-          WEIGHTS.popularity * popularity +
-          WEIGHTS.language * language;
-
-        if (!skillScores.has(skill.slug)) {
-          skillScores.set(skill.slug, { skill, scores: [] });
-        }
-        skillScores.get(skill.slug)!.scores.push(finalScore);
-      }
-    }
-  } else if (embeddingFailed) {
-    // Degraded path: use semantic (from cached embedding) + language only
-    // Fall back to language + popularity only (no semantic embedding)
+  // Use hybrid similarity (embedding + text overlap)
+  for (const queryText of queries) {
     for (const skill of skills) {
-      const language = calculateLanguageScore(skill, detection);
-      const popularity = calculatePopularityScore(skill, bounds);
+      // Search against skill name, description, and domain combined
+      const searchText = `${skill.name} ${skill.description} ${skill.domain || ""}`;
 
-      // Simplified scoring: language (0.5) + popularity (0.5) without semantic
-      const finalScore = 0.5 * popularity + 0.5 * language;
+      // Calculate semantic similarity using hybrid approach (embeddings + text overlap)
+      const semantic = hybridSimilarity(queryText, searchText);
+
+      // Skip if semantic similarity below threshold
+      if (semantic < SEMANTIC_THRESHOLD) continue;
+
+      const popularity = calculatePopularityScore(skill, bounds);
+      const language = calculateLanguageScore(skill, detection);
+
+      const finalScore =
+        WEIGHTS.semantic * semantic +
+        WEIGHTS.popularity * popularity +
+        WEIGHTS.language * language;
 
       if (!skillScores.has(skill.slug)) {
         skillScores.set(skill.slug, { skill, scores: [] });
@@ -168,16 +138,15 @@ export async function rankSkills(
   const rankedSkills: RankedSkill[] = Array.from(skillScores.values()).map(
     ({ skill, scores }) => {
       const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-      const avgSemantic = validEmbeddings.length > 0
-        ? cosineSimilarity(validEmbeddings[0], skill.embedding)
-        : 0;
+      const searchText = `${skill.name} ${skill.description} ${skill.domain || ""}`;
+      const semantic = hybridSimilarity(query, searchText);
       const popularity = calculatePopularityScore(skill, bounds);
       const language = calculateLanguageScore(skill, detection);
 
       return {
         ...skill,
         score: avgScore,
-        semantic_similarity: avgSemantic,
+        semantic_similarity: semantic,
         popularity_score: popularity,
         language_match: language,
       };
@@ -187,6 +156,6 @@ export async function rankSkills(
   // Sort by score and return top-5
   return {
     results: rankedSkills.sort((a, b) => b.score - a.score).slice(0, 5),
-    embeddingFailed,
+    embeddingFailed: false, // Local embeddings always work
   };
 }

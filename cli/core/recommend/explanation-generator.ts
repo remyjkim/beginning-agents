@@ -1,5 +1,6 @@
-import { RankedSkill } from "./query-ranker";
-import { LanguageDetection } from "./repo-detector";
+import type { RankedSkill } from "./query-ranker";
+import type { LanguageDetection } from "./repo-detector";
+import { colorize, colors } from "../output";
 
 export interface Explanation {
   title: string;
@@ -19,11 +20,29 @@ const DOMAIN_NAMES: Record<string, string> = {
   internationalization: "internationalization",
 };
 
+const DOMAIN_DESCRIPTIONS: Record<string, string> = {
+  testing: "Helps write and run tests for your code",
+  security: "Improves security and audits for vulnerabilities",
+  performance: "Optimizes and profiles application performance",
+  deployment: "Streamlines deployment and release processes",
+  documentation: "Generates and maintains documentation",
+  patterns: "Demonstrates code patterns and best practices",
+  code_quality: "Enforces code standards and catches issues",
+  debugging: "Helps debug and diagnose problems",
+  refactoring: "Assists with code restructuring and improvement",
+  internationalization: "Handles multi-language and localization",
+};
+
 export function generateExplanation(
-  skill: RankedSkill,
+  skill: RankedSkill & { useCase?: string },
   query: string,
   detection: LanguageDetection
 ): string {
+  // If useCase is available from vector DB extraction, use it
+  if ((skill as any).useCase && (skill as any).useCase.length > 0) {
+    return (skill as any).useCase;
+  }
+
   const domain = skill.domain ? DOMAIN_NAMES[skill.domain] || skill.domain : null;
   const primaryLang = detection.primary;
   const isLowSemantic = skill.semantic_similarity < 0.6;
@@ -55,19 +74,43 @@ export function generateExplanation(
   return `Matches "${query}". General utility for your project.`;
 }
 
+function getBriefDescription(skill: RankedSkill & { summary?: string }): string {
+  // Prefer summary from vector DB extraction (Claude Haiku generated)
+  if ((skill as any).summary && (skill as any).summary.length > 0) {
+    return (skill as any).summary;
+  }
+
+  // Use the skill's actual description (fetched from README)
+  // If it looks like a proper description (not just "name from owner"), use it
+  if (skill.description && !skill.description.includes(" from ")) {
+    return skill.description;
+  }
+
+  // Fallback to domain-based description
+  if (skill.domain && DOMAIN_DESCRIPTIONS[skill.domain]) {
+    return DOMAIN_DESCRIPTIONS[skill.domain]!;
+  }
+
+  return `Skill: ${skill.name.replace(/-/g, " ")}`;
+}
+
 export function formatSkillResult(
-  skill: RankedSkill,
+  skill: RankedSkill & { summary?: string; useCase?: string },
   index: number,
   query: string,
   detection: LanguageDetection,
   status: string
 ): string {
   const explanation = generateExplanation(skill, query, detection);
-  const scorePercent = Math.round(skill.score * 100);
+  const briefDesc = getBriefDescription(skill);
+
+  const nameAndStatus = colorize(`${index}. /${skill.slug}`, colors.cyan) +
+    ` ${colorize(`[${status}]`, colors.yellow)}` +
+    ` ${colorize(skill.installCount.toLocaleString() + ' downloads', colors.green)}`;
 
   return (
-    `${index}. /${skill.slug} ${status}\n` +
+    `${nameAndStatus}\n` +
     `   ${explanation}\n` +
-    `   Score: ${scorePercent}% | ${skill.installCount.toLocaleString()} installs | ⭐ ${skill.githubStars}`
+    `   ${colorize(briefDesc, colors.gray)}`
   );
 }

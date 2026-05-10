@@ -1,5 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
+import { embeddingFromText } from "./embedding-local";
+import { isVectorDbAvailable } from "./mastra-client";
+import { indexSkillsToVectorDb } from "./vector-ranker";
 
 export interface Skill {
   slug: string;
@@ -31,6 +34,39 @@ function getCachePath(homeDir: string): string {
   return join(homeDir, ".claude", "skill-embeddings.json");
 }
 
+function getVectorIndexMetadataPath(homeDir: string): string {
+  return join(homeDir, ".claude", "skill-vector-index.json");
+}
+
+interface VectorIndexMeta {
+  indexedAt: string;
+  skillCount: number;
+}
+
+function isVectorIndexStale(homeDir: string): boolean {
+  const metaPath = getVectorIndexMetadataPath(homeDir);
+  if (!existsSync(metaPath)) return true;
+
+  try {
+    const meta = JSON.parse(readFileSync(metaPath, "utf-8")) as VectorIndexMeta;
+    const indexDate = new Date(meta.indexedAt);
+    const now = new Date();
+    const daysDiff = (now.getTime() - indexDate.getTime()) / (1000 * 60 * 60 * 24);
+    return daysDiff >= CACHE_TTL_DAYS;
+  } catch {
+    return true;
+  }
+}
+
+function saveVectorIndexMetadata(homeDir: string, meta: VectorIndexMeta): void {
+  try {
+    const metaPath = getVectorIndexMetadataPath(homeDir);
+    writeFileSync(metaPath, JSON.stringify(meta, null, 2));
+  } catch {
+    // Ignore metadata write errors
+  }
+}
+
 function isCacheValid(cacheTime: string): boolean {
   const cacheDate = new Date(cacheTime);
   const now = new Date();
@@ -38,64 +74,139 @@ function isCacheValid(cacheTime: string): boolean {
   return daysDiff < CACHE_TTL_DAYS;
 }
 
-async function fetchSkillsFromApi(apiKey?: string): Promise<{ skills: Skill[]; bounds: PopularityBounds }> {
-  const skillsData: Array<any> = [];
-  let page = 1;
-  const pageSize = 50;
-  let hasMore = true;
+async function fetchSkillDescription(owner: string, skillSlug: string): Promise<string | null> {
+  try {
+    // Try to construct GitHub URL and fetch README
+    // Owner format is typically "org/repo", we need the repo name for the skill
+    const repoName = owner.split("/")[1] || owner;
+    const readmeUrl = `https://raw.githubusercontent.com/${owner}/main/README.md`;
 
-  // Fetch paginated skills from the leaderboard
-  while (hasMore && page <= 10) {
-    // Limit to 10 pages (500 skills) to avoid excessive requests
-    const url = `https://skills.sh/api/v1/skills?page=${page}&limit=${pageSize}`;
-    const headers: Record<string, string> = {
-      "Accept": "application/json",
-    };
-
-    if (apiKey) {
-      headers["Authorization"] = `Bearer ${apiKey}`;
-    }
-
-    const response = await fetch(url, { headers });
-
+    const response = await fetch(readmeUrl);
     if (!response.ok) {
-      throw new Error(`Skills API error: ${response.status} ${response.statusText}`);
+      // Try alternate branch name
+      const altUrl = `https://raw.githubusercontent.com/${owner}/master/README.md`;
+      const altResponse = await fetch(altUrl);
+      if (!altResponse.ok) return null;
+
+      const content = await altResponse.text();
+      return parseBriefDescription(content);
     }
 
-    const data = await response.json() as {
-      skills: Array<{
-        id: string;
-        slug: string;
-        name: string;
-        source: string;
-        installs: number;
-        stars?: number;
-        url: string;
-        description?: string;
-      }>;
-      pagination?: {
-        page: number;
-        limit: number;
-        total: number;
-      };
-    };
+    const content = await response.text();
+    return parseBriefDescription(content);
+  } catch {
+    return null; // Silently fail and use fallback description
+  }
+}
 
-    if (!data.skills || data.skills.length === 0) {
-      hasMore = false;
-      break;
+function parseBriefDescription(markdown: string): string | null {
+  const lines = markdown.split("\n");
+
+  for (const line of lines) {
+    let trimmed = line.trim();
+
+    // Skip empty lines, headers that are just "# Project" type things, and code blocks
+    if (!trimmed || trimmed.startsWith("```") || trimmed === "#" || trimmed === "##") {
+      continue;
     }
 
-    skillsData.push(...data.skills);
-
-    // Check if there are more pages
-    if (data.pagination) {
-      const totalPages = Math.ceil(data.pagination.total / data.pagination.limit);
-      hasMore = page < totalPages;
-    } else {
-      hasMore = data.skills.length === pageSize;
+    // Skip HTML tags
+    if (trimmed.startsWith("<") || trimmed.startsWith("|")) {
+      continue;
     }
 
-    page++;
+    // Skip heading-only lines (just # or ##)
+    if (trimmed.match(/^#+\s*$/) || trimmed.match(/^#+\s+[A-Z\s]+\s*$/i)) {
+      continue;
+    }
+
+    // Found a real description line
+    if (trimmed.startsWith("#")) {
+      // Extract text from heading: "# Description here" -> "Description here"
+      const desc = trimmed.replace(/^#+\s+/, "").trim();
+      if (desc && desc.length > 10) {
+        return desc;
+      }
+      continue;
+    }
+
+    // Regular paragraph line
+    if (trimmed.length > 10 && !trimmed.startsWith("-") && !trimmed.startsWith("*")) {
+      // Remove any inline HTML tags
+      trimmed = trimmed.replace(/<[^>]*>/g, "").trim();
+
+      // Skip if it's empty after removing HTML
+      if (trimmed.length < 10) continue;
+
+      // Truncate to ~100 chars for brief description
+      return trimmed.length > 100 ? trimmed.substring(0, 100) + "..." : trimmed;
+    }
+  }
+
+  return null;
+}
+
+async function fetchSkillsFromCli(): Promise<{ skills: Skill[]; bounds: PopularityBounds }> {
+  const { execSync } = require("child_process");
+  const skillsData: Array<any> = [];
+
+  // Use npx skills find with broad search to get all available skills
+  // Search for common terms to build comprehensive list
+  const searchTerms = ["test", "web", "app", "api", "react", "data"];
+  const allLines: string[] = [];
+
+  for (const term of searchTerms) {
+    try {
+      const output = execSync(`npx skills find ${term}`, { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] });
+      allLines.push(...output.split("\n"));
+    } catch {
+      // Continue with next term
+    }
+  }
+
+  try {
+    const lines = allLines;
+
+    // Parse skills from CLI output
+    // Format: owner/repo@skill-name X.XK installs
+    for (const line of lines) {
+      // Remove ANSI color codes
+      const cleanLine = line.replace(/\x1b\[[0-9;]*m/g, "");
+
+      // Match: owner/repo@skill-name ... X.XK installs (or X installs, or XM installs)
+      const match = cleanLine.match(/^([^@\s]+)@([\w-]+)\s+([0-9.KM]+)\s+installs?/);
+      if (match) {
+        const owner = match[1]!;
+        const skillName = match[2]!;
+        const installsStr = match[3]!;
+
+        // Parse installs with K/M suffix
+        let installs = 0;
+        if (installsStr.includes("K")) {
+          installs = Math.floor(parseFloat(installsStr) * 1000);
+        } else if (installsStr.includes("M")) {
+          installs = Math.floor(parseFloat(installsStr) * 1000000);
+        } else {
+          installs = parseInt(installsStr, 10);
+        }
+
+        skillsData.push({
+          slug: skillName,
+          name: skillName.replace(/-/g, " "),
+          description: `${skillName} from ${owner}`,
+          installs,
+          stars: 0,
+          source: "skills.sh",
+          owner,
+        });
+      }
+    }
+
+    if (skillsData.length === 0) {
+      throw new Error("No skills found in CLI output");
+    }
+  } catch (error) {
+    throw new Error(`Failed to fetch skills from CLI: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   // Calculate bounds from actual data
@@ -118,20 +229,29 @@ async function fetchSkillsFromApi(apiKey?: string): Promise<{ skills: Skill[]; b
     },
   };
 
-  // Transform to Skill format
-  const skillsWithEmbeddings: Skill[] = await Promise.all(
-    skillsData.map(async (skill) => ({
-      slug: skill.slug,
-      name: skill.name,
-      description: skill.description || `${skill.name} from ${skill.source}`,
-      installCount: skill.installs || 0,
-      githubStars: skill.stars || 0,
-      lastUpdated: new Date().toISOString(), // API doesn't provide this, use current date
-      languages: [], // API doesn't provide, will be inferred from domain
-      embedding: await generateEmbedding(skill.description || skill.name),
-      domain: inferDomainFromName(skill.name),
-    }))
+  // Fetch brief descriptions from skill READMEs
+  const enrichedSkills = await Promise.all(
+    skillsData.map(async (skill) => {
+      const briefDesc = await fetchSkillDescription(skill.owner, skill.slug);
+      return {
+        ...skill,
+        description: briefDesc || `${skill.name} from ${skill.source}`,
+      };
+    })
   );
+
+  // Transform to Skill format
+  const skillsWithEmbeddings: Skill[] = enrichedSkills.map((skill) => ({
+    slug: skill.slug,
+    name: skill.name,
+    description: skill.description,
+    installCount: skill.installs || 0,
+    githubStars: skill.stars || 0,
+    lastUpdated: new Date().toISOString(),
+    languages: [],
+    embedding: generateEmbedding(skill.description || skill.name),
+    domain: inferDomainFromName(skill.name),
+  }));
 
   return { skills: skillsWithEmbeddings, bounds };
 }
@@ -140,36 +260,22 @@ function inferDomainFromName(name: string): string | undefined {
   const nameLower = name.toLowerCase();
 
   if (nameLower.includes("test")) return "testing";
-  if (nameLower.includes("security") || nameLower.includes("audit")) return "security";
-  if (nameLower.includes("performance") || nameLower.includes("profile")) return "performance";
-  if (nameLower.includes("deploy")) return "deployment";
-  if (nameLower.includes("document")) return "documentation";
-  if (nameLower.includes("pattern")) return "patterns";
-  if (nameLower.includes("lint") || nameLower.includes("format") || nameLower.includes("quality"))
-    return "code-quality";
-  if (nameLower.includes("debug")) return "debugging";
-  if (nameLower.includes("refactor")) return "refactoring";
-  if (nameLower.includes("i18n") || nameLower.includes("translation")) return "internationalization";
+  if (nameLower.includes("security") || nameLower.includes("audit") || nameLower.includes("secure")) return "security";
+  if (nameLower.includes("performance") || nameLower.includes("profile") || nameLower.includes("benchmark")) return "performance";
+  if (nameLower.includes("deploy") || nameLower.includes("release")) return "deployment";
+  if (nameLower.includes("document") || nameLower.includes("readme")) return "documentation";
+  if (nameLower.includes("pattern") || nameLower.includes("architecture")) return "patterns";
+  if (nameLower.includes("lint") || nameLower.includes("format") || nameLower.includes("quality") || nameLower.includes("standards")) return "code-quality";
+  if (nameLower.includes("debug") || nameLower.includes("troubleshoot")) return "debugging";
+  if (nameLower.includes("refactor") || nameLower.includes("restructure")) return "refactoring";
+  if (nameLower.includes("i18n") || nameLower.includes("translation") || nameLower.includes("localization")) return "internationalization";
 
   return undefined;
 }
 
-async function generateEmbedding(text: string): Promise<number[]> {
-  const mastraKey = process.env.MASTRA_API_KEY;
-
-  if (!mastraKey) {
-    // Mock embedding for now - in production would call Mastra AI
-    return Array(EMBEDDING_DIM).fill(0).map(() => Math.random() * 2 - 1);
-  }
-
-  try {
-    // TODO: Call actual Mastra AI API when available
-    // For now, return mock embedding
-    return Array(EMBEDDING_DIM).fill(0).map(() => Math.random() * 2 - 1);
-  } catch {
-    // Fallback to random embedding on error
-    return Array(EMBEDDING_DIM).fill(0).map(() => Math.random() * 2 - 1);
-  }
+function generateEmbedding(text: string): number[] {
+  // Use local TF-IDF based embedding (no API required)
+  return embeddingFromText(text);
 }
 
 function loadLocalFallback(repoRoot: string): { skills: Skill[]; bounds: PopularityBounds } {
@@ -212,10 +318,10 @@ function loadLocalFallback(repoRoot: string): { skills: Skill[]; bounds: Popular
         },
       };
 
-      // Add mock embeddings (will be replaced by real Mastra AI)
+      // Generate embeddings using local TF-IDF algorithm
       const skillsWithEmbeddings: Skill[] = data.skills.map((skill) => ({
         ...skill,
-        embedding: Array(EMBEDDING_DIM).fill(0).map(() => Math.random() * 2 - 1),
+        embedding: generateEmbedding(skill.description || skill.name),
       }));
 
       return {
@@ -252,19 +358,17 @@ export async function loadSkillIndex(
     }
   }
 
-  // Try to fetch from API (requires API key for real skills.sh access)
+  // Try to fetch from skills.sh CLI
   let result: { skills: Skill[]; bounds: PopularityBounds };
-  if (apiKey) {
-    try {
-      result = await fetchSkillsFromApi(apiKey);
-    } catch (error) {
-      console.warn(`Failed to fetch from Skills-API: ${error instanceof Error ? error.message : String(error)}`);
-      result = loadLocalFallback(repoRoot || homeDir);
-    }
-  } else {
-    // No API key - use local fallback
+  try {
+    result = await fetchSkillsFromCli();
+  } catch (error) {
+    console.warn(`Failed to fetch from skills.sh CLI: ${error instanceof Error ? error.message : String(error)}`);
     result = loadLocalFallback(repoRoot || homeDir);
   }
+
+  // Vector DB indexing disabled for now - using local ranking only
+  // TODO: Re-enable after pgVector table creation is debugged
 
   // Cache the result
   const skillIndex: SkillIndex = {
@@ -293,9 +397,11 @@ export function cosineSimilarity(a: number[], b: number[]): number {
   let magnitudeB = 0;
 
   for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    magnitudeA += a[i] * a[i];
-    magnitudeB += b[i] * b[i];
+    const aVal = a[i]!;
+    const bVal = b[i]!;
+    dotProduct += aVal * bVal;
+    magnitudeA += aVal * aVal;
+    magnitudeB += bVal * bVal;
   }
 
   if (magnitudeA === 0 || magnitudeB === 0) return 0;

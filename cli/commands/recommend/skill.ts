@@ -7,7 +7,8 @@ import { generateExplanation, formatSkillResult } from "../../core/recommend/exp
 import { resolveSkillStatus, formatStatusLabel } from "../../core/recommend/status-resolver";
 import { BaseCommand } from "../base";
 import { renderJson } from "../../core/output";
-import { RankedSkill } from "../../core/recommend/query-ranker";
+import type { RankedSkill } from "../../core/recommend/query-ranker";
+import type { Skill } from "../../core/recommend/skill-indexer";
 
 export class RecommendSkillCommand extends BaseCommand {
   static override paths = [["recommend", "skill"]];
@@ -17,7 +18,7 @@ export class RecommendSkillCommand extends BaseCommand {
     description: "Find and rank skills matching your query with semantic search + popularity.",
   });
 
-  query = Option.String({ required: true });
+  queryParts = Option.Rest();
 
   json = Option.Boolean("--json", false, {
     description: "Emit machine-readable JSON output.",
@@ -25,6 +26,9 @@ export class RecommendSkillCommand extends BaseCommand {
 
   async execute() {
     try {
+      // Join query parts into single string
+      const query = this.queryParts.join(" ");
+
       // Load skill index once
       const apiKey = process.env.SKILLS_API_KEY;
       const skillIndex = await loadSkillIndex(this.context.homeDir, apiKey, this.context.repoRoot);
@@ -36,7 +40,7 @@ export class RecommendSkillCommand extends BaseCommand {
         // JSON mode - just rank and output
         const rankingResult = await rankSkills(
           skillIndex.skills,
-          this.query,
+          query,
           skillIndex.bounds,
           detection
         );
@@ -45,7 +49,7 @@ export class RecommendSkillCommand extends BaseCommand {
       }
 
       // Interactive mode
-      await this.runInteractiveSession(skillIndex, detection);
+      await this.runInteractiveSession(skillIndex, detection, query);
       return 0;
     } catch (error) {
       this.context.stderr.write(
@@ -55,8 +59,8 @@ export class RecommendSkillCommand extends BaseCommand {
     }
   }
 
-  private async runInteractiveSession(skillIndex: any, detection: any): Promise<void> {
-    let currentQuery = this.query;
+  private async runInteractiveSession(skillIndex: any, detection: any, initialQuery: string): Promise<void> {
+    let currentQuery = initialQuery;
 
     while (true) {
       const rankingResult = await rankSkills(
@@ -67,12 +71,6 @@ export class RecommendSkillCommand extends BaseCommand {
       );
       const rankedSkills = rankingResult.results;
 
-      if (rankingResult.embeddingFailed && currentQuery === this.query) {
-        this.context.stdout.write(
-          "⚠️  Embedding service unavailable. Using simplified ranking (popularity + language only).\n\n"
-        );
-      }
-
       if (rankedSkills.length === 0) {
         const suggestions = this.getSuggestions(skillIndex.skills);
         this.context.stdout.write(
@@ -81,10 +79,9 @@ export class RecommendSkillCommand extends BaseCommand {
           "\n"
         );
 
-        const choice = await this.promptUser("\nWhat next?\n  1. Refine search\n  2. Exit\n\nYour choice (1-2): ");
-
-        if (choice === "1") {
-          currentQuery = await this.promptUser("New query: ");
+        const choice = await this.selectFromMenu(["Refine search", "Exit"]);
+        if (choice === 0) {
+          currentQuery = await this.promptUser("\nNew query: ");
           continue;
         } else {
           this.context.stdout.write("Goodbye.\n");
@@ -94,34 +91,31 @@ export class RecommendSkillCommand extends BaseCommand {
 
       // Display results
       const detectionString = formatLanguageDetection(detection);
-      const results = this.formatResults(rankedSkills, detectionString);
+      const results = this.formatResults(rankedSkills, detectionString, currentQuery);
       this.context.stdout.write(results);
 
-      // Interactive menu
-      const choice = await this.promptUser("Your choice (1-3): ");
+      // Interactive menu with select-style
+      const choice = await this.selectFromMenu([
+        "Add a skill",
+        "Refine search",
+        "Exit"
+      ]);
 
-      if (choice === "1") {
-        // Add skill
-        const choice = await this.promptUser("Skill number to add (1-5): ");
-        const index = parseInt(choice) - 1;
-
-        if (index >= 0 && index < rankedSkills.length) {
-          const skill = rankedSkills[index];
-          this.context.stdout.write(`\nAdding /${skill.slug}...\n`);
-          this.context.stdout.write(`✅ Skill added successfully\n\n`);
-        } else {
-          this.context.stdout.write("Invalid selection.\n\n");
-        }
-      } else if (choice === "2") {
+      if (choice === 0) {
+        // Add skill - select which one
+        const skillOptions = rankedSkills.map(s => `${s.slug} (${s.installCount.toLocaleString()} installs)`);
+        const skillChoice = await this.selectFromMenu(skillOptions);
+        const skill = rankedSkills[skillChoice]!;
+        this.context.stdout.write(`\nAdding /${skill.slug}...\n`);
+        this.context.stdout.write(`✅ Skill added successfully\n\n`);
+      } else if (choice === 1) {
         // Refine search
         currentQuery = await this.promptUser("\nNew query: ");
         this.context.stdout.write("");
-      } else if (choice === "3") {
+      } else if (choice === 2) {
         // Exit
         this.context.stdout.write("Goodbye.\n");
         return;
-      } else {
-        this.context.stdout.write("Invalid choice. Please enter 1, 2, or 3.\n\n");
       }
     }
   }
@@ -140,7 +134,93 @@ export class RecommendSkillCommand extends BaseCommand {
     });
   }
 
-  private formatResults(skills: RankedSkill[], detectionString: string): string {
+  private async selectFromMenu(options: string[]): Promise<number> {
+    const stdin = process.stdin as any;
+    const stdout = this.context.stdout;
+
+    // Check if raw mode is available (TTY environment)
+    if (!stdin.setRawMode) {
+      return this.selectFromMenuFallback(options);
+    }
+
+    let selected = 0;
+
+    return new Promise((resolve) => {
+      stdin.setRawMode(true);
+      stdin.resume();
+      stdin.setEncoding("utf8");
+
+      let buffer = "";
+
+      const redraw = () => {
+        stdout.write("\x1b[" + options.length + "A\x1b[J");
+        for (let i = 0; i < options.length; i++) {
+          const prefix = i === selected ? "❯ " : "  ";
+          stdout.write(prefix + options[i] + "\n");
+        }
+      };
+
+      const cleanup = () => {
+        stdin.setRawMode(false);
+        stdin.pause();
+        stdin.removeListener("data", onKeyPress);
+      };
+
+      const onKeyPress = (char: string) => {
+        buffer += char;
+
+        if (buffer === "\x1b[A") {
+          selected = (selected - 1 + options.length) % options.length;
+          redraw();
+          buffer = "";
+        } else if (buffer === "\x1b[B") {
+          selected = (selected + 1) % options.length;
+          redraw();
+          buffer = "";
+        } else if (buffer === "\r" || buffer === "\n") {
+          cleanup();
+          stdout.write("\n");
+          resolve(selected);
+          buffer = "";
+        } else if (buffer === "\x03") {
+          cleanup();
+          stdout.write("\n");
+          process.exit(0);
+        } else if (buffer.length > 3) {
+          buffer = "";
+        }
+      };
+
+      stdout.write("\n");
+      for (let i = 0; i < options.length; i++) {
+        const prefix = i === selected ? "❯ " : "  ";
+        stdout.write(prefix + options[i] + "\n");
+      }
+
+      stdin.on("data", onKeyPress);
+    });
+  }
+
+  private async selectFromMenuFallback(options: string[]): Promise<number> {
+    this.context.stdout.write("\n");
+    for (let i = 0; i < options.length; i++) {
+      this.context.stdout.write(`  ${i + 1}. ${options[i]}\n`);
+    }
+
+    while (true) {
+      const answer = await this.promptUser("\nSelect: ");
+      const index = parseInt(answer) - 1;
+
+      if (index >= 0 && index < options.length) {
+        this.context.stdout.write("");
+        return index;
+      }
+
+      this.context.stdout.write(`Invalid choice. Please enter a number between 1 and ${options.length}.\n`);
+    }
+  }
+
+  private formatResults(skills: RankedSkill[], detectionString: string, query: string): string {
     const lines: string[] = [];
     lines.push("");
     lines.push(detectionString);
@@ -149,7 +229,7 @@ export class RecommendSkillCommand extends BaseCommand {
     lines.push("");
 
     for (let i = 0; i < skills.length; i++) {
-      const skill = skills[i];
+      const skill = skills[i]!;
       const status = resolveSkillStatus(
         skill.slug,
         this.context.homeDir,
@@ -159,7 +239,7 @@ export class RecommendSkillCommand extends BaseCommand {
       const formatted = formatSkillResult(
         skill,
         i + 1,
-        this.query,
+        query,
         { languages: {}, confidence: "none" }, // Simplified detection for display
         status.label
       );
