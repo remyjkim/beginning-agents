@@ -21,16 +21,16 @@ const DOMAIN_NAMES: Record<string, string> = {
 };
 
 const DOMAIN_DESCRIPTIONS: Record<string, string> = {
-  testing: "Helps write and run tests for your code",
-  security: "Improves security and audits for vulnerabilities",
-  performance: "Optimizes and profiles application performance",
-  deployment: "Streamlines deployment and release processes",
-  documentation: "Generates and maintains documentation",
-  patterns: "Demonstrates code patterns and best practices",
-  code_quality: "Enforces code standards and catches issues",
-  debugging: "Helps debug and diagnose problems",
-  refactoring: "Assists with code restructuring and improvement",
-  internationalization: "Handles multi-language and localization",
+  testing: "Provides utilities for automated testing and test execution",
+  security: "Enhances security posture and identifies vulnerabilities",
+  performance: "Analyzes and optimizes application performance characteristics",
+  deployment: "Facilitates deployment processes and release management",
+  documentation: "Generates, maintains, and publishes documentation",
+  patterns: "Demonstrates architectural patterns and industry best practices",
+  code_quality: "Enforces code standards and identifies code quality issues",
+  debugging: "Assists with debugging workflows and problem diagnosis",
+  refactoring: "Facilitates code restructuring and architectural improvements",
+  internationalization: "Provides support for localization and multi-language applications",
 };
 
 export function generateExplanation(
@@ -50,28 +50,28 @@ export function generateExplanation(
 
   // Template 1: language + domain
   if (primaryLang && domain && !isLowSemantic) {
-    return `Matches "${domain}". Your ${primaryLang} project would benefit from ${skill.name}.`;
+    return `Recommended for ${domain} in ${primaryLang} projects.`;
   }
 
   // Template 2: language only (no domain)
   if (primaryLang && !domain && !isLowSemantic) {
-    return `Matches "${query}". Your ${primaryLang} project would benefit from ${skill.name}.`;
+    return `Addresses "${query}" concerns and is applicable to ${primaryLang} projects.`;
   }
 
   // Template 3: domain only (no language detected)
   if (domain && !primaryLang && !isLowSemantic) {
-    return `Matches "${domain}". Useful for ${domain} work.`;
+    return `Addresses ${domain} concerns and is relevant to related development tasks.`;
   }
 
   // Template 4: low semantic + high popularity (interesting but not obviously relevant)
   if (isLowSemantic && isHighPopularity) {
     return domain
-      ? `Popular choice for ${domain}. May apply to your project.`
-      : `Popular skill. May be relevant for "${query}".`;
+      ? `Widely adopted for ${domain}. May provide value in related contexts.`
+      : `Widely adopted skill. May provide value for projects matching "${query}" criteria.`;
   }
 
   // Template 5: generic fallback
-  return `Matches "${query}". General utility for your project.`;
+  return `Addresses "${query}" concerns and provides general utility for projects.`;
 }
 
 function getBriefDescription(skill: RankedSkill & { summary?: string }): string {

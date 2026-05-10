@@ -138,8 +138,7 @@ function parseBriefDescription(markdown: string): string | null {
       // Skip if it's empty after removing HTML
       if (trimmed.length < 10) continue;
 
-      // Truncate to ~100 chars for brief description
-      return trimmed.length > 100 ? trimmed.substring(0, 100) + "..." : trimmed;
+      return trimmed;
     }
   }
 
