@@ -74,16 +74,26 @@ export function generateExplanation(
   return `Addresses "${query}" concerns and provides general utility for projects.`;
 }
 
+function cleanDescription(text: string): string {
+  return text
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/<[^>]+>/g, "")
+    .trim();
+}
+
 function getBriefDescription(skill: RankedSkill & { summary?: string }): string {
   // Prefer summary from vector DB extraction (Claude Haiku generated)
   if ((skill as any).summary && (skill as any).summary.length > 0) {
-    return (skill as any).summary;
+    return cleanDescription((skill as any).summary);
   }
 
   // Use the skill's actual description (fetched from README)
   // If it looks like a proper description (not just "name from owner"), use it
   if (skill.description && !skill.description.includes(" from ")) {
-    return skill.description;
+    return cleanDescription(skill.description);
   }
 
   // Fallback to domain-based description
@@ -101,7 +111,6 @@ export function formatSkillResult(
   detection: LanguageDetection,
   status: string
 ): string {
-  const explanation = generateExplanation(skill, query, detection);
   const briefDesc = getBriefDescription(skill);
 
   const nameAndStatus = colorize(`${index}. /${skill.slug}`, colors.cyan) +
@@ -110,7 +119,6 @@ export function formatSkillResult(
 
   return (
     `${nameAndStatus}\n` +
-    `   ${explanation}\n` +
     `   ${colorize(briefDesc, colors.gray)}`
   );
 }
