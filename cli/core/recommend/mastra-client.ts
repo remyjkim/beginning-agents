@@ -1,7 +1,7 @@
 import { PgVector } from '@mastra/pg';
-import { embeddingFromText } from './embedding-local';
+import { embedText as embedWithXenova } from './embedding-xenova';
 
-const EMBEDDING_DIMENSION = 512;
+const EMBEDDING_DIMENSION = 384;
 const INDEX_NAME = 'skills';
 
 export interface SkillMetadata {
@@ -58,8 +58,8 @@ export async function ensureIndex(): Promise<void> {
 }
 
 export async function embedText(text: string): Promise<number[]> {
-  // Use local TF-IDF embedding (no API calls needed)
-  return embeddingFromText(text);
+  // Use semantic embeddings via Xenova/all-MiniLM-L6-v2 (384-dim)
+  return embedWithXenova(text);
 }
 
 export async function upsertSkill(

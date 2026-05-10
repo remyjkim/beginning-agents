@@ -99,8 +99,18 @@ export async function rankSkills(
   bounds: PopularityBounds,
   detection: LanguageDetection
 ): Promise<{ results: RankedSkill[]; embeddingFailed: boolean }> {
-  // Use local ranking (with Claude-extracted descriptions if available)
-  // Vector DB integration coming later
+  // Use vector DB ranking if available, otherwise fall back to local
+  if (isVectorDbAvailable()) {
+    try {
+      return await vectorRankSkills(skills, query, bounds, detection);
+    } catch (error) {
+      console.warn(
+        `Vector DB ranking failed, falling back to local ranking: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  // Use local ranking as fallback
   // Expand query (3 hidden iterations)
   const queries = await expandQuery(query);
 

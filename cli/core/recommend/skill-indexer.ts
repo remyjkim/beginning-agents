@@ -368,8 +368,16 @@ export async function loadSkillIndex(
     result = loadLocalFallback(repoRoot || homeDir);
   }
 
-  // Vector DB indexing disabled for now - using local ranking only
-  // TODO: Re-enable after pgVector table creation is debugged
+  // Index to pgVector if database is available
+  if (isVectorDbAvailable()) {
+    try {
+      await indexSkillsToVectorDb(result.skills);
+    } catch (error) {
+      console.warn(
+        `Vector DB indexing failed, falling back to local ranking: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
 
   // Cache the result
   const skillIndex: SkillIndex = {

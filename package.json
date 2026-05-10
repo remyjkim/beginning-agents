@@ -51,6 +51,7 @@
     "@ai-sdk/openai": "^0.0.51",
     "@mastra/core": "^1.32.1",
     "@mastra/pg": "^1.9.4",
+    "@xenova/transformers": "^2.6.0",
     "ai": "^3.4.19",
     "clipanion": "4.0.0-rc.4",
     "smol-toml": "^1.6.1",
