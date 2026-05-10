@@ -14,6 +14,7 @@ export interface Skill {
   languages: string[];
   embedding: number[];
   domain?: string;
+  owner?: string;
 }
 
 export interface PopularityBounds {
@@ -250,6 +251,7 @@ async function fetchSkillsFromCli(): Promise<{ skills: Skill[]; bounds: Populari
     languages: [],
     embedding: generateEmbedding(skill.description || skill.name),
     domain: inferDomainFromName(skill.name),
+    owner: skill.owner,
   }));
 
   return { skills: skillsWithEmbeddings, bounds };

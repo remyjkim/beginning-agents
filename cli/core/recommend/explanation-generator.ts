@@ -74,6 +74,13 @@ export function generateExplanation(
   return `Addresses "${query}" concerns and provides general utility for projects.`;
 }
 
+function isEnglish(text: string): boolean {
+  if (!text || text.length === 0) return true;
+  const englishCharCount = (text.match(/[a-zA-Z0-9\s\-.,;:!?()'"\/@#$%&*+=<>{}[\]|\\^~`]/g) || []).length;
+  const englishRatio = englishCharCount / text.length;
+  return englishRatio > 0.7;
+}
+
 function cleanDescription(text: string): string {
   return text
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
@@ -81,19 +88,22 @@ function cleanDescription(text: string): string {
     .replace(/\*([^*]+)\*/g, "$1")
     .replace(/`([^`]+)`/g, "$1")
     .replace(/<[^>]+>/g, "")
+    .replace(/^>\s*/gm, "")
     .trim();
 }
 
-function getBriefDescription(skill: RankedSkill & { summary?: string }): string {
+function getBriefDescription(skill: RankedSkill & { summary?: string }): string | null {
   // Prefer summary from vector DB extraction (Claude Haiku generated)
   if ((skill as any).summary && (skill as any).summary.length > 0) {
-    return cleanDescription((skill as any).summary);
+    const cleaned = cleanDescription((skill as any).summary);
+    if (isEnglish(cleaned)) return cleaned;
   }
 
   // Use the skill's actual description (fetched from README)
   // If it looks like a proper description (not just "name from owner"), use it
   if (skill.description && !skill.description.includes(" from ")) {
-    return cleanDescription(skill.description);
+    const cleaned = cleanDescription(skill.description);
+    if (isEnglish(cleaned)) return cleaned;
   }
 
   // Fallback to domain-based description
@@ -101,7 +111,7 @@ function getBriefDescription(skill: RankedSkill & { summary?: string }): string 
     return DOMAIN_DESCRIPTIONS[skill.domain]!;
   }
 
-  return `Skill: ${skill.name.replace(/-/g, " ")}`;
+  return null;
 }
 
 export function formatSkillResult(
@@ -112,13 +122,26 @@ export function formatSkillResult(
   status: string
 ): string {
   const briefDesc = getBriefDescription(skill);
+  const owner = (skill as any).owner || "unknown";
+  const skillId = `${owner}/${skill.slug}`;
+  const skillsUrl = `https://skills.sh/${owner}/${skill.slug}`;
 
-  const nameAndStatus = colorize(`${index}. /${skill.slug}`, colors.cyan) +
-    ` ${colorize(`[${status}]`, colors.yellow)}` +
-    ` ${colorize(skill.installCount.toLocaleString() + ' downloads', colors.green)}`;
+  const installsDisplay = skill.installCount >= 1000
+    ? `${(skill.installCount / 1000).toFixed(1)}K installs`
+    : `${skill.installCount} installs`;
+
+  const nameAndInstalls = colorize(`${index}. ${skillId}`, colors.cyan) +
+    ` ${colorize(installsDisplay, colors.green)}`;
+
+  const urlLine = `   ${colorize(`└ ${skillsUrl}`, colors.blue)}`;
+
+  const descLine = briefDesc
+    ? `   ${colorize(briefDesc, colors.gray)}`
+    : '';
 
   return (
-    `${nameAndStatus}\n` +
-    `   ${colorize(briefDesc, colors.gray)}`
+    `${nameAndInstalls}\n` +
+    `${urlLine}` +
+    (descLine ? `\n${descLine}` : '')
   );
 }
