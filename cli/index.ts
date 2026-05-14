@@ -307,7 +307,7 @@ async function main() {
         // Add skill
         const selected = await selectWithArrows(
           skills,
-          (skill) => `${skill.name} (${formatInstalls((skill.metadata?.installs as number) || 0)})`
+          (skill) => skill.name
         );
 
         if (selected) {
