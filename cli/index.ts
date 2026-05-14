@@ -26,7 +26,15 @@ async function searchSkills(query: string) {
     const top5 = result.aggregatedSkills.slice(0, 5);
 
     if (top5.length > 0) {
-      const enrichedSkills = enrichSkillsWithSummaries(top5);
+      let spinnerFrame = 0;
+      const enrichmentSpinner = setInterval(() => {
+        printSpinner(`Generating summaries...`, spinnerFrame++);
+      }, 100);
+
+      const enrichedSkills = await enrichSkillsWithSummaries(top5, undefined, logger);
+
+      clearInterval(enrichmentSpinner);
+      process.stdout.write("\r");
 
       enrichedSkills.forEach((skill, i) => {
         const installs = (skill.metadata?.installs as number) || 0;
