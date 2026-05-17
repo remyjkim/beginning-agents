@@ -262,7 +262,7 @@ async function main() {
   if (args[0] === "add" && args[1] === "skill") {
     const skillId = args.slice(2).join(" ");
     if (!skillId) {
-      console.error("Usage: bun run cli/index.ts add skill <skill-id>");
+      console.error("Usage: bgng add skill <skill-id>");
       process.exit(1);
     }
 
@@ -275,8 +275,8 @@ async function main() {
   // Handle "recommend skill" command
   if (args[0] !== "recommend" || args[1] !== "skill") {
     console.error("Usage:");
-    console.error("  bun run cli/index.ts recommend skill <query>");
-    console.error("  bun run cli/index.ts add skill <skill-id>\n");
+    console.error("  bgng recommend skill <query>");
+    console.error("  bgng add skill <skill-id>\n");
     process.exit(1);
   }
 

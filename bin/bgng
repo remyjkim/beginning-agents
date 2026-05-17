@@ -1,0 +1,15 @@
+#!/usr/bin/env bun
+import { spawn } from "child_process";
+import path from "path";
+
+const cliPath = path.join(import.meta.dir, "../cli/index.ts");
+const args = process.argv.slice(2);
+
+const proc = spawn("bun", [cliPath, ...args], {
+  stdio: "inherit",
+  cwd: path.join(import.meta.dir, ".."),
+});
+
+proc.on("exit", (code) => {
+  process.exit(code || 0);
+});

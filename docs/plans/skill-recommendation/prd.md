@@ -668,15 +668,35 @@ test/
 
 ## How to Run Phase 1
 
+**Installation** (global command):
+```bash
+npm install -g .
+# or with bun:
+bun install -g .
+```
+
+**Usage** (after installation):
 ```bash
 # Setup
 export OPENROUTER_API_KEY=sk-or-v1-...
 
 # Search for skills
-bun run cli/index.ts recommend skill react testing
+bgng recommend skill "react testing"
 
 # Direct add
-bun run cli/index.ts add skill owner/repo@skill-name
+bgng add skill owner/repo@skill-name
+```
+
+**Development** (without installation):
+```bash
+# Search for skills
+./bin/bgng recommend skill "react testing"
+
+# Direct add
+./bin/bgng add skill owner/repo@skill-name
+
+# Or with bun:
+bun run cli/index.ts recommend skill "react testing"
 
 # Run tests
 bun test
