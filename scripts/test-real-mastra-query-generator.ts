@@ -1,9 +1,9 @@
 // ABOUTME: Manually exercises the real OpenRouter-backed query generator.
 // ABOUTME: Prints only generated queries and non-secret runtime metadata.
 
-import { DEFAULT_MASTRA_QUERY_CONFIG, QUERY_GENERATOR_SYSTEM_PROMPT } from "../src/skill-recommendation/prompts";
-import { coerceQueryList } from "../src/skill-recommendation/query-generator";
-import { OpenRouterMastraTextClient } from "../src/skill-recommendation/openrouter-client";
+import { DEFAULT_MASTRA_QUERY_CONFIG, QUERY_GENERATOR_SYSTEM_PROMPT } from "../cli/commands/recommend/prompts";
+import { coerceQueryList } from "../cli/commands/recommend/query-generator";
+import { OpenRouterMastraTextClient } from "../cli/commands/recommend/openrouter-client";
 
 const query = process.argv.slice(2).join(" ").trim() || "find react hook";
 const model = process.env.OPENROUTER_MODEL ?? "minimax/minimax-m2.5";

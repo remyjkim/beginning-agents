@@ -3,9 +3,9 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { aggregateSkills } from "../src/skill-recommendation/skill-aggregator";
-import { findSkills, parseSkillFinderOutput } from "../src/skill-recommendation/skill-finder";
-import type { Skill } from "../src/skill-recommendation/types";
+import { aggregateSkills } from "../cli/commands/recommend/skill-aggregator";
+import { findSkills, parseSkillFinderOutput } from "../cli/commands/recommend/skill-finder";
+import type { Skill } from "../cli/commands/recommend/types";
 import { cleanupTempRoots, createExecutable, createTempRoot } from "./helpers";
 
 const tempRoots: string[] = [];
@@ -53,6 +53,17 @@ describe("skill finder", () => {
 
     await expect(findSkills("missing", { env: { PATH: binDir } })).resolves.toEqual([]);
   });
+
+  test("returns an empty array when skill finder command times out", async () => {
+    const root = await createTempRoot("skill-finder-timeout-");
+    tempRoots.push(root);
+    const binDir = join(root, "bin");
+    await createExecutable(binDir, "npx", "sleep 2");
+
+    const startedAt = performance.now();
+    await expect(findSkills("slow", { env: { PATH: binDir }, timeoutMs: 50 })).resolves.toEqual([]);
+    expect(performance.now() - startedAt).toBeLessThan(1_000);
+  });
 });
 
 describe("skill aggregation", () => {
@@ -93,5 +104,27 @@ describe("skill aggregation", () => {
     );
 
     expect(aggregateSkills(skillsByQuery)).toHaveLength(30);
+  });
+
+  test("filters skills that match existing packages case-insensitively", () => {
+    let filteredCount = 0;
+    const aggregated = aggregateSkills(
+      {
+        query: [
+          { id: "react", name: "React", relevanceScore: 1 },
+          { id: "testing-library", name: "Testing Library", relevanceScore: 0.9 },
+        ],
+      },
+      30,
+      {
+        existingPackages: ["react"],
+        onFiltered: (count) => {
+          filteredCount = count;
+        },
+      },
+    );
+
+    expect(aggregated.map((skill) => skill.id)).toEqual(["testing-library"]);
+    expect(filteredCount).toBe(1);
   });
 });

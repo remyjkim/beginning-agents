@@ -1,5 +1,5 @@
-import { OpenRouterMastraTextClient } from "../src/skill-recommendation/openrouter-client";
-import { QUERY_GENERATOR_SYSTEM_PROMPT } from "../src/skill-recommendation/prompts";
+import { OpenRouterMastraTextClient } from "../cli/commands/recommend/openrouter-client";
+import { QUERY_GENERATOR_SYSTEM_PROMPT } from "../cli/commands/recommend/prompts";
 
 async function testOpenRouterClient() {
   console.log("Testing OpenRouter client with real API...\n");

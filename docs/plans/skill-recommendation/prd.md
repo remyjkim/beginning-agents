@@ -1,704 +1,293 @@
 ---
-title: Skill Recommendation System - PRD
-version: 1.1
-date: 2026-05-17
-status: Phase 1 Complete, Phase 2 Planning (Context-Aware Generation)
+title: Skill Recommendation System - PRD (Compact)
+version: 1.4
+date: 2026-05-18
+status: Phase 2 In Progress (75% - Skills Detector Complete)
 ---
 
 # Skill Recommendation System - PRD
 
-## Executive Summary
+**Goal**: Help developers discover relevant skills from 91k+ registry based on natural language queries using AI-powered expansion and parallel search.
 
-The Skill Recommendation System helps developers discover and add appropriate skills (npm packages, tools, patterns) from the global skills.sh registry (91k+ skills) based on natural language queries. It uses AI-powered query expansion and parallel skill finding to provide fast, relevant recommendations.
-
-**Current Status**: Phase 1 (MVP) complete with CLI interface and working end-to-end pipeline.
+**Status**: Phase 2 in progress. Query Generator refactored to Mastra client (testable, injectable, no API dependency). Context extraction structured but not yet integrated.
 
 ---
 
-## Phase 1: MVP (✅ COMPLETE)
+## Quick Reference
 
-### 1.1 User Journey
-
+### Pipeline Overview
 ```
-User Query
-    ↓
-[Query Generator] → 3 refined search queries (minimax/OpenRouter)
-    ↓
-[Skill Finder] → Run `npx skills find` in parallel (5 per query)
-    ↓
-[Skill Aggregator] → Deduplicate by ID, rank by relevance
-    ↓
-[Skill Enricher] → Generate 3-5 sentence summaries (gpt-3.5-turbo)
-    ↓
-[CLI Display] → Show top 5 with summaries + menu
-    ↓
-[User Selection] → Arrow keys to select, add via `npx skills add`
+Query → [Query Gen] → 3 refined queries → [Skill Finder] → Top 30 skills 
+→ [Aggregator] → Deduplicate → [Enricher] → 3-5 sentence summaries → Display
 ```
 
-### 1.2 Components Implemented
+### Cost
+- **Per search**: $0.00112 (~0.1¢)
+- **Per 1M searches/month**: $1,120
 
-#### Query Generator
-- **Input**: User query (e.g., "react testing")
-- **Output**: 3 distinct search queries covering:
-  1. Library/package names
-  2. Problem-solution wording
-  3. Pattern/framework/use cases
-- **Model**: minimax-text-01 via OpenRouter
-- **Config**: temp=0.2, timeout=5s, deterministic fallback if API fails
-- **File**: `src/skill-recommendation/query-generator.ts`
-
-#### Skill Finder
-- **Input**: Refined query
-- **Output**: Sorted list of skills with relevance scores
-- **Implementation**: Wraps `npx skills find <query>` command
-- **Parsing**: Handles ANSI color codes, extracts skill ID + install count
-- **Fallback**: Returns empty array if command fails
-- **File**: `src/skill-recommendation/skill-finder.ts`
-
-#### Skill Aggregator
-- **Input**: Skills by query (map from each refined query)
-- **Output**: Deduplicated, ranked skill list
-- **Algorithm**: 
-  - Deduplicates by skill ID
-  - Retains highest relevance score per skill
-  - Returns top N candidates (default 30)
-- **File**: `src/skill-recommendation/skill-aggregator.ts`
-
-#### Skill Enricher
-- **Input**: Skill list (typically top 5)
-- **Output**: Enriched skills with AI-generated summaries
-- **Prompt**: "Generate 3-5 sentence summary of what this skill does, its main purpose, and typical use cases"
-- **Model**: gpt-3.5-turbo via OpenRouter
-- **Config**: temp=0.2, timeout=5s
-- **Parallel**: All summaries generated concurrently
-- **File**: `src/skill-recommendation/skill-enricher.ts`
-
-#### Pipeline Orchestrator
-- **Input**: User query
-- **Output**: Recommendation result with all intermediate data
-- **Parallelization**: 
-  - Query generation → sequential (feeds into next step)
-  - Skill finder calls → parallel across all refined queries
-  - Summary generation → parallel across all skills
-- **Logging**: Structured JSON logs for all steps
-- **File**: `src/skill-recommendation/pipeline.ts`
-
-#### CLI Interface
-- **Commands**:
-  - `bun run cli/index.ts recommend skill <query>` - Search & display
-  - `bun run cli/index.ts add skill <skill-id>` - Direct add
-- **UX Features**:
-  - Loading spinner during search
-  - Arrow key navigation (↑↓) for menu and skill selection
-  - Skill summaries displayed below each result
-  - Menu options: Add skill, Refine search, Exit
-  - Clean output with ANSI colors
-- **File**: `cli/index.ts`
-
-### 1.3 APIs & Dependencies
-
-**External APIs**:
-- OpenRouter (minimax-text-01, gpt-3.5-turbo)
-- skills.sh CLI (npx skills find)
-
-**Environment**:
-- `OPENROUTER_API_KEY`: Required for query generation & summaries
-
-**Latency Profile**:
-- Search: 3-5 seconds (query generation + skill finding)
-- Enrichment: 2-4 seconds (parallel summary generation)
-- Total: ~7-10 seconds per search
+### Timeline
+| Phase | Status | Duration | Cost |
+|-------|--------|----------|------|
+| 1: MVP | ✅ Done | 2w | $0.56/500 searches |
+| 2: Context-Aware | 🚀 60% | 1.5w | +context extractors |
+| 2-2: Testing | 📊 Planned | 1w | evaluation report |
+| 3: Optimization | ⏭️ | 2w | -60% cost (caching) |
+| 3B: Auth | ⏭️ | 1w | per-user quotas |
+| 3C: Web UI | ⏭️ | 1.5w | browser interface |
+| 4: Distribution | ⏭️ | 3w | IDE ext, API, analytics |
 
 ---
 
-## Phase 2: Context-Aware Query Generation (PLANNED)
+## Phase 1: MVP ✅
 
-### 2.0 Overview
+| Component | File | Model | Latency | Cost |
+|-----------|------|-------|---------|------|
+| Query Generator | [query-generator.ts](../../cli/commands/recommend/query-generator.ts) | minimax-text-01 | 2-3s | $0.000025 |
+| Skill Finder | [skill-finder.ts](../../cli/commands/recommend/skill-finder.ts) | npx CLI | 3-5s | FREE |
+| Aggregator | [skill-aggregator.ts](../../cli/commands/recommend/skill-aggregator.ts) | Sort/dedupe | <100ms | FREE |
+| Enricher | [skill-enricher.ts](../../cli/commands/recommend/skill-enricher.ts) | gpt-3.5-turbo | 2-4s | $0.0011 (×5) |
+| Pipeline | [pipeline.ts](../../cli/commands/recommend/pipeline.ts) | Orchestrator | 8-12s E2E | — |
+| CLI | [command.ts](../../cli/commands/recommend/command.ts) | Interactive | — | — |
 
-**Goal**: Enhance Query Generator to understand project context, avoiding duplicate recommendations and improving relevance.
-
-**Key Change**: Query Generator now accepts:
-1. User prompt (original)
-2. Project context:
-   - README/documentation summary
-   - Language breakdown (GitHub-style: %)
-   - Runtime environment (Node.js, Python, Bun, etc.)
-   - Existing skills in the repo (to filter duplicates)
-
-**Impact**: Smarter, context-aware queries instead of generic ones.
+**Query Strategy**: 3-angle (library names, problem-solution, patterns/frameworks)
 
 ---
 
-### 2.1 Context Extraction Pipeline
+## Phase 2: Context-Aware & Mastra 🚀 (70% Complete)
 
-**6 Context Inputs** (all local file extraction, no APIs):
+### Completed ✅
+- Query Generator refactored to Mastra-compatible `MastraTextClient` interface
+- Fallback queries (deterministic, no API dependency): `"${query} library package"`, `"${query} problem solution"`, `"${query} workflow pattern"`
+- Response parsing (resilient to multiple JSON formats)
+- Context type structure finalized: `{ readmeSummary, languages, frameworks, runtimes, existingPackages, recentSessionThemes, installedSkills, installedMcpServers }`
+- System prompt tuned for 3-angle strategy + avoid existing packages
+- **Skills/MCP detector**: Scans ~/.claude/skills, ~/.cursor/skills-cursor, ~/.codex/skills + MCP servers
+  - Detects 252 installed skills across all environments
+  - Scans ~/.codex/config.toml for MCP server configs
+  - Filters recommendations to avoid duplicate installs
 
-#### 2.1.1 README Parser
-- **Input**: `README.md` file
-- **Output**: Extracted summary (title, description, tech stack)
-- **Method**: Regex pattern matching on markdown
-- **Latency**: <100ms
-- **File**: `src/skill-recommendation/extractors/readme-parser.ts`
+### In Progress 🔄
+- Context extractors (7 modules, fully integrated):
+  - README Parser, Language Detector, Framework Detector, Runtime Detector, Dependency Parser, Session Log Extractor, **Skills/MCP Detector** ✅
+- End-to-end testing (3 scenarios: with query, no query, with context)
+- Verification: E2E test confirms 252 installed skills are filtered from recommendations
 
-#### 2.1.2 Language Detector
-- **Input**: Repository directory structure
-- **Output**: Language breakdown (GitHub-style percentages)
-- **Method**: Scan files by extension, calculate percentages
-- **Example Output**:
-  ```json
-  {
-    "TypeScript": 75,
-    "JavaScript": 15,
-    "JSON": 10
-  }
-  ```
-- **Latency**: <200ms (depends on repo size)
-- **File**: `src/skill-recommendation/extractors/language-detector.ts`
+### Next Steps ⏭️
+1. ✅ **Skills/MCP detector implemented** - scans ~/.claude/skills, ~/.cursor/skills-cursor, ~/.codex/skills
+2. ✅ **Filtering integrated** - aggregator filters out 252 installed skills
+3. ✅ **E2E verified** - pipeline confirms filtering works (8 new skills recommended, 252 filtered)
+4. Migrate Skill Enricher to Mastra client (~1h)
+5. Wire CLI command.ts to full pipeline (~2h)
+6. Phase 2-2 prompt variation testing (~3h)
 
-#### 2.1.3 Runtime Environment Detector
-- **Input**: Config files (package.json, pyproject.toml, go.mod, Cargo.toml, Gemfile)
-- **Output**: Detected runtimes + package managers
-- **Detection**: Check for presence of config files + installed packages
-- **Example Output**:
-  ```json
-  {
-    "runtimes": ["Node.js", "TypeScript", "Bun"],
-    "packageManagers": ["npm", "bun"]
-  }
-  ```
-- **Latency**: <50ms
-- **File**: `src/skill-recommendation/extractors/runtime-detector.ts`
-
-#### 2.1.4 Framework Detector
-- **Input**: `package.json` or equivalent dependency files
-- **Output**: Detected frameworks (React, Vue, Angular, Express, Django, etc.)
-- **Method**: Check dependency list against known framework names
-- **Example Output**:
-  ```json
-  {
-    "frameworks": ["React", "Next.js"]
-  }
-  ```
-- **Latency**: <50ms
-- **File**: `src/skill-recommendation/extractors/framework-detector.ts`
-
-#### 2.1.5 Dependency Parser
-- **Input**: `package.json`, `pyproject.toml`, `Gemfile`, `Cargo.toml`, `go.mod`
-- **Output**: List of already-installed packages (to avoid duplicates)
-- **Method**: Parse config files, extract package names
-- **Example Output**:
-  ```json
-  {
-    "existingPackages": ["react", "jest", "webpack", "typescript", "eslint"]
-  }
-  ```
-- **Latency**: <100ms
-- **File**: `src/skill-recommendation/extractors/dependency-parser.ts`
-
-#### 2.1.6 Session Log Extractor (NEW)
-- **Input**: Recent Claude Code session logs (`~/.claude/logs/`)
-- **Output**: 2-5 distinct themes from recent work (e.g., "React testing", "CLI scripting")
-- **Method**:
-  1. Read last 5 session logs (JSONL format)
-  2. Extract user messages → identify keywords + intent
-  3. Extract assistant tool_use patterns → count tool usage
-  4. Aggregate into 2-5 themes
-- **Example Output**:
-  ```json
-  {
-    "recentSessionThemes": [
-      "React component refactoring",
-      "E2E test setup",
-      "DevOps/Deployment"
-    ]
-  }
-  ```
-- **Latency**: <300ms
-- **File**: `src/skill-recommendation/extractors/session-log-extractor.ts`
-
-**Updated Context Type**:
+### Context Type
 ```typescript
 interface ProjectContext {
-  readmeSummary?: string;
-  languages: Record<string, number>;        // e.g. { "TypeScript": 75 }
-  frameworks?: string[];                     // e.g. ["React", "Next.js"]
-  runtimes: string[];                        // e.g. ["Node.js", "Bun"]
-  existingPackages: string[];                // e.g. ["react", "jest"]
-  recentSessionThemes?: string[];            // e.g. ["React testing", "CLI scripting"]
+  readmeSummary: string;
+  languages: Record<string, number>;          // {"TypeScript": 75, "JavaScript": 25}
+  frameworks: string[];                        // ["React", "Next.js"]
+  runtimes: { runtimes: string[], packageManagers: string[] };
+  existingPackages: string[];                  // Filter out duplicates
+  recentSessionThemes: string[];               // From ~/.claude/logs/
 }
 ```
 
-**Total Context Extraction Latency**: ~700ms (parallel execution, ~300ms actual)
+### Mastra Client Interface
+```typescript
+interface MastraTextClient {
+  generateText({
+    system: string;
+    prompt: string;
+    model: string;
+    temperature: number;
+    timeoutMs: number;
+  }): Promise<string>;
+}
+```
+
+**Benefit**: Swap LLM providers (OpenRouter → Claude → local) without changing generator code.
 
 ---
 
-### 2.2 Enhanced Query Generator
+## Gap Analysis: Installed vs. Available Skills
 
-**Input**: User query + Full project context (6 extractors)
+### Current State
+- **Total Available**: 91,000+ skills in registry
+- **Currently Installed**: 252 unique skills
+  - Claude Code: 149 skills
+  - Cursor: 15 skills  
+  - Codex: 91 skills
+- **Exploration Gap**: 90,748+ skills (99.7% unexplored)
 
-**Updated Prompt**:
-```
-Given the user's query and comprehensive project context, generate 3 distinct search queries 
-that are highly relevant and avoid duplicates.
+### Filtering Mechanism
+The aggregator filters out 3 exclusion categories:
+1. **Existing Packages** (from package.json, pyproject.toml, etc.)
+2. **Installed Skills** (from ~/.claude/skills, ~/.cursor/skills-cursor, ~/.codex/skills)
+3. **Installed MCP Servers** (from ~/.codex/config.toml)
 
-PROJECT CONTEXT:
-- Languages: {languages} (e.g., TypeScript 75%, JavaScript 15%)
-- Frameworks: {frameworks} (e.g., React, Next.js)
-- Runtime: {runtimes} (e.g., Node.js, Bun)
-- Existing Packages: {existingPackages} (MUST AVOID THESE)
-- README: {readmeSummary}
-- Recent Work: {recentSessionThemes} (e.g., "React testing", "E2E setup")
+**Result**: Only truly NEW skills recommended to user
 
-USER QUERY: {userQuery}
-
-Generate 3 refined search queries that:
-1. NEVER recommend existing packages: {existingPackages}
-2. Match the detected frameworks & languages
-3. Consider recent work themes (user likely working on that area)
-4. Provide diverse search angles
-
-Return ONLY 3 queries as JSON array: ["query1", "query2", "query3"]
-```
-
-**Example**:
-```
-Project Context:
-  - Languages: TypeScript 75%, JavaScript 25%
-  - Frameworks: React, Next.js
-  - Runtime: Node.js, Bun
-  - Existing: react, jest, typescript, webpack, eslint
-  - Recent themes: ["React component testing", "E2E test setup"]
-
-User Query: "testing utilities"
-
-Output:
-[
-  "React Testing Library advanced patterns",
-  "E2E testing frameworks Cypress Playwright",
-  "Accessibility testing tools WCAG"
-]
-```
-
-**Changes**:
-- Input now includes all 6 context extractors (parallel execution)
-- Prompt explicitly mentions avoiding existing packages
-- Leverages recent work themes to suggest relevant skills
-- More specific, contextual queries
-
-**File**: Update `src/skill-recommendation/query-generator.ts`
+### Example
+User searches "testing framework":
+- Finder returns: 50 testing-related skills (tdd, jest, pytest, vitest, playwright, etc.)
+- After filtering installed (tdd): 45 new skills recommended
+- Pipeline avoids duplicate installations
 
 ---
 
-### 2.3 CLI Updates
+## Phase 2-2: Testing & Evaluation 📊
 
-**Command** (unchanged, behavior improved):
-```bash
-# Recommend skills with full project context (automatic)
-bun run cli/index.ts recommend skill "testing utilities"
+### Prompt Variant Testing
+| Variant | Angles | Speed | Target |
+|---------|--------|-------|--------|
+| Current | 3 (library, problem, pattern) | 5-8s | >84% |
+| Detailed | 4 (+framework) | 6-10s | >88% |
+| Concise | 2 (library, problem) | 3-5s | >80% |
 
-# Explicit repo path
-bun run cli/index.ts recommend skill --query "testing" --repo /path/to/project
-```
+**Test on**: 5 diverse queries across 3 project types (research, dev, docs)
 
-**Updated Flow** (with context extraction):
-```
-User Query + Repo Path
-    ↓
-[Context Extraction] (parallel, ~300ms)
-  ├→ README Parser
-  ├→ Language Detector
-  ├→ Framework Detector
-  ├→ Runtime Detector
-  ├→ Dependency Parser
-  └→ Session Log Extractor
-    ↓
-[Enhanced Query Generator] → 3 context-aware queries (minimax API)
-    ↓
-[Skill Finder] → Find skills (parallel, 5 per query)
-    ↓
-[Skill Aggregator] → Deduplicate + rank
-    ↓
-[Filter] → Remove already-installed packages
-    ↓
-[Skill Enricher] → Generate summaries (gpt-3.5-turbo API)
-    ↓
-[CLI Display] → Show top 5 with summaries
-```
+### File Type Evaluation
+- **Research** (ML): PyTorch, scikit-learn → recommend MLflow, wandb
+- **Development** (CLI/TypeScript): typescript, jest, aws-sdk → recommend yargs, inquirer, ora
+- **Documentation** (Markdown): none → recommend docusaurus, sphinx, mkdocs
 
-**Latency Breakdown**:
-- Context extraction: ~300ms (parallel local I/O)
-- Query generation: ~2-3s (minimax API call)
-- Skill finding: ~3-5s (parallel `npx skills find` calls)
-- Skill enrichment: ~2-4s (parallel summary generation)
-- **Total**: ~8-12s (vs Phase 1: 7-10s)
+**Goal**: Context improves precision by 3-10% across all types
 
-**File**: Update `cli/index.ts`
+### Deliverables
+- `test/prompt-variation-evaluation.test.ts`
+- `test/context-file-types-evaluation.test.ts`
+- `test/readme-extraction-evaluation.test.ts`
+- `test/context-improvement-evaluation.test.ts`
+- `docs/plans/skill-recommendation/phase2-2-evaluation-report.md`
 
 ---
 
-### 2.4 Phase 1 vs Phase 2 Comparison
+## Phase 2.7: Authentication System Scoping
 
-| Aspect | Phase 1 | Phase 2 |
-|--------|---------|---------|
-| Query Input | User prompt only | User prompt + project context |
-| Query Generator | Static, generic | Context-aware |
-| Avoids Duplicates | No | Yes (filters existing) |
-| Latency | 7-10s | 7-12s (context extraction adds ~2-3s) |
-| Accuracy | ~84% precision | Target: >90% precision |
-| Files to Create | 0 | 5+ new context modules |
+**8 Requirements**: Registration, Login, Sessions, API Keys, Preferences, History, Rate Limiting, Social Auth
 
----
+| Component | Estimate | Priority |
+|-----------|----------|----------|
+| Auth middleware (JWT/session) | 4h | MUST |
+| DB schema (users, sessions) | 2h | MUST |
+| Registration + Login | 5h | MUST |
+| API key management | 3h | SHOULD |
+| User preferences storage | 2h | SHOULD |
+| Search history storage | 2h | SHOULD |
+| Rate limiting enforcement | 3h | SHOULD |
+| **Total** | **~24h** | — |
 
-## Phase 3: Optimization & Features (PLANNED - moved from Phase 2)
-
-### 3.1 Generalized 3-Block Pipeline
-
-**Current State (Phase 1)**: Direct pipeline with fixed components
-**Goal (Phase 3)**: Generalizable, extensible architecture for future improvements
-
-**The 3-Block Design**:
-
-```
-User Query
-    ↓
-[Block 1: Query Generator]  ← AI expands query with multiple strategies
-    ↓ (multiple refined queries)
-[Block 2: Skill Finder]     ← npx skills find gets top 5 per query
-    ↓ (all matching skills + scores)
-[Block 3: Reranker]         ← AI ranks to top 5
-    ↓
-Recommended Skills
-```
-
-**Block 1: Query Generator**
-- **Input:** Original user query + context (languages, repo info)
-- **Current Tool:** minimax-text-01 via OpenRouter
-- **Output:** 3 refined queries exploring different search angles
-- **Example:** "react testing" → ["react-testing-library", "testing React components", "component test patterns"]
-- **Future:** Swap to Claude or Mastra for different strategies
-
-**Block 2: Skill Finder**
-- **Input:** Refined queries from Block 1
-- **Tool:** `npx skills find [query]` (returns top 5 per query)
-- **Output:** Aggregated skill list with relevance scores (~25 unique skills)
-- **Future:** Replace with embedding-based search if CLI becomes bottleneck
-
-**Block 3: Reranker**
-- **Input:** Aggregated skills + original query
-- **Tool:** Options: minimax, Cohere AI (free), or cross-encoder
-- **Output:** Top 5 re-ranked skills
-- **Fallback:** Keyword match + alphabetical sort if any block fails
-- **Future:** Use custom ML model or user feedback signals
-
-**Why This Approach**:
-| Aspect | Benefit |
-|--------|---------|
-| **Generalizable** | Easy to swap components (Query Gen, Skill Finder, Reranker) |
-| **Exploratory** | Try different query strategies without rewriting the pipeline |
-| **Defensible** | Each block has clear input/output; testable independently |
-| **Scalable** | Works with any query length/complexity |
-| **Cheap** | Reranking is optional; can use free APIs (Cohere) |
-
-**Files to Create**:
-- `src/skill-recommendation/skill-reranker.ts` — Reranks top 30 → top 5
+**Deferred**: Social auth, analytics dashboard
 
 ---
 
-### 3.2 Caching Layer
+## Phase 3: Optimization
 
-**Goal**: Reduce latency for repeated queries by 80%+
+| Feature | Cost Savings | Effort | Impact |
+|---------|--------------|--------|--------|
+| Query caching | 60% | 2h | Repeats: <1s |
+| Skill result caching | 40% | 2h | — |
+| Reranker (free Cohere) | 50% | 3h | No enrichment needed |
+| Rate limiting | ∞ | 3h | Prevent abuse |
+| Model swapping | 70% | 2h | minimax for enrichment |
 
-**Implementation**:
-- Cache query refinements by hash of original query
-- Cache skill search results by refined query
-- TTL-based expiration (1 hour default)
-- Storage: Local file-based (`.skillcache/`)
-
-**Expected Impact**:
-- Repeated searches: <1 second
-- New queries after cache: ~3 seconds
-- Cache hit rate target: 60%+
-
-**Files to Create**:
-- `src/skill-recommendation/query-cache.ts`
-- `src/skill-recommendation/skill-cache.ts`
+**Best case**: Reduce to $0.00028/search (75% savings)
 
 ---
 
-### 3.3 Rate Limiting & Quotas
+## Phase 3B: Authentication System
 
-**Goal**: Prevent API abuse and manage costs
-
-**Features**:
-- Per-user rate limits (requests/hour)
-- Per-IP rate limits
-- Cost tracking (minimax vs gpt-3.5-turbo budgets)
-- Graceful degradation when rate-limited
-
-**Files to Create**:
-- `src/skill-recommendation/rate-limiter.ts`
+**24h effort** (see Phase 2.7 scope). Per-user quotas, API keys, history tracking.
 
 ---
 
-### 3.4 Web UI (Phase 3B)
+## Phase 3C: Web UI
 
-**Goal**: Provide browser-based interface with better UX
-
-**Features**:
-- Real-time search results
-- Interactive skill cards with links to skills.sh
-- One-click skill addition (backend integration)
-- Search history & saved skills
-- Responsive design
-
-**Stack**:
-- Frontend: React (or similar)
-- Backend: Express/Node.js
-- Database: SQLite (user preferences, history)
-
-**Architecture**:
-```
-Browser → Express Server → Skill Recommendation Pipeline
-                       ↓
-                   SQLite (history, saves)
-```
+**Features**: Real-time search, skill cards, saved searches, history, responsive design
+**Stack**: React + Express + SQLite
+**Effort**: 1.5 weeks
 
 ---
 
-### 3.5 Feedback Loop & Learning
+## Phase 4: Distribution
 
-**Goal**: Improve recommendations over time based on user feedback
-
-**Metrics to Track**:
-- Which skills users actually add
-- Skill ratings (1-5 stars)
-- Query-to-skill relevance feedback
-
-**Learning Approach**:
-- Weight popular skills higher in ranking
-- Identify successful query → skill patterns
-- Use feedback to retrain reranker weights
-
-**Files to Create**:
-- `src/skill-recommendation/feedback-collector.ts`
-- `src/skill-recommendation/feedback-analytics.ts`
-
----
-
-## Phase 4: Integration & Distribution (FUTURE)
-
-### 4.1 IDE Extensions
-- VS Code extension for inline skill discovery
-- JetBrains IDE plugin
-
-### 4.2 CLI Tool Distribution
-- Publish to npm as `@bgng/skill-finder`
-- Standalone `bgng` CLI tool with skill command
-
-### 4.3 API Service
-- REST API for skill recommendations
-- GraphQL endpoint option
-- Rate-limited public access tier
-
-### 4.4 Analytics
-- Track popular queries and skills
-- Identify skill discovery patterns
-- Public dashboard with trending skills
-
----
-
-## Current Implementation Details
-
-### Query Expansion Strategy
-
-The system generates 3 search angles per user query:
-
-**Example: "React testing"**
-```
-1. react-testing-library package  (Library names angle)
-2. testing React components approach  (Problem-solution angle)
-3. component testing patterns React  (Pattern/use-case angle)
-```
-
-These queries explore different semantic angles to maximize skill discovery breadth.
-
-### Relevance Scoring
-
-Skills are scored based on:
-1. **Install count** (normalized to 0-1, capped at 1000+)
-2. **Query match** (implicit from skill finder ranking)
-3. **Deduplication** (retains highest score when same skill appears multiple times)
-
-### Summary Generation Prompt
-
-```
-Generate a comprehensive 3-5 sentence summary of what the "[skill name]" 
-package/skill does, its main purpose, and typical use cases.
-
-Return ONLY the summary sentences, no additional text or formatting.
-```
-
-**Model**: gpt-3.5-turbo (cheaper than Claude, similar quality)
-**Temperature**: 0.2 (deterministic, focused)
+- VS Code extension (~1w)
+- REST API service (~1w)
+- Public dashboard (~1w)
 
 ---
 
 ## Cost Analysis
 
-### Phase 1 Costs (Monthly Estimate)
+### Per-Call Breakdown
 
-**Assumptions**: 100 users, 5 searches/user/month, parallel enrichment
+| Call | Model | Input | Output | Total |
+|------|-------|-------|--------|-------|
+| Query Gen | minimax | $0.0000125 | $0.000012 | $0.000025 |
+| Enrichment (×5) | gpt-3.5 | $0.0002 | $0.0009 | $0.0011 |
+| **TOTAL** | — | — | — | **$0.001125** |
 
-| Component | Cost | Notes |
-|-----------|------|-------|
-| Query Gen (minimax) | $0.05 | 500 queries × ~0.0001/query |
-| Summaries (GPT-3.5) | $0.10 | 2,500 summaries × ~0.00004/summary |
-| Skill Finding | Free | Local `npx skills find` |
-| **Total** | **$0.15** | Per 500 searches |
+### Scenarios
+- **500/month** (startup): $0.56/month, $6.72/year
+- **10K/month** (growth): $11.20/month, $134/year
+- **200K/month** (heavy): $224/month, $2,688/year
+- **5M/month** (enterprise): $5,600/month, $67,200/year
 
-**Scaling**: Cost scales linearly with searches, not users.
-
----
-
-## Success Metrics
-
-### Phase 1 (MVP)
-- [ ] E2E pipeline latency < 15 seconds
-- [ ] Skill finder completion rate > 95%
-- [ ] User can add skill in < 2 minutes
-- [ ] CLI arrow navigation smooth (no jank)
-- [ ] Error handling graceful (fallbacks work)
-
-### Phase 2 (Context-Aware)
-- [ ] Context extraction latency < 3 seconds
-- [ ] Duplicate filtering accuracy > 95%
-- [ ] Top 5 relevance improves to >90% precision
-- [ ] E2E latency remains < 15 seconds (with context)
-- [ ] Language & runtime detection accuracy > 90%
-- [ ] Filter removes 80%+ of false positives from Phase 1
-
-### Phase 3 (Optimization)
-- [ ] Query cache hit rate > 60%
-- [ ] Reranker improves top-5 relevance by 20%+
-- [ ] Latency with cache < 5 seconds
-- [ ] Rate limiting prevents >10 req/min per user
-
-### Phase 4 (Integration)
-- [ ] IDE extension installed by >1k developers
-- [ ] API service handles >100 req/sec
-- [ ] Public dashboard shows 10k+ monthly searches
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| **CLI** | TypeScript + Bun runtime |
-| **LLM APIs** | OpenRouter (minimax, gpt-3.5-turbo) |
-| **Skill Finding** | skills.sh CLI (npx) |
-| **Logging** | Structured JSON (JSONL) |
-| **Caching** | File-based (Phase 2) |
-| **Web** | React + Express (Phase 2) |
-| **Database** | SQLite (Phase 2) |
-
----
-
-## Known Limitations & Trade-offs
-
-### Current (Phase 1)
-
-| Limitation | Reason | Future Solution |
-|-----------|--------|-----------------|
-| 3 queries max | API cost control | Reranker instead of more queries |
-| No caching | MVP simplicity | File-based cache (Phase 2) |
-| Sequential fallback | No semantic reranking | Reranker block (Phase 2) |
-| CLI only | Fast MVP | Web UI (Phase 2B) |
-| No user history | Stateless design | SQLite DB (Phase 2) |
-
-### Design Decisions
-
-1. **OpenRouter over Anthropic**: Unified API, cost savings
-2. **Minimax for queries**: Fast, cheap, deterministic at temp=0.2
-3. **gpt-3.5-turbo for summaries**: Better quality-to-cost ratio than minimax for natural language
-4. **Parallel skill finding**: 3-5s latency instead of 15-25s sequential
-5. **CLI over web (Phase 1)**: Faster MVP, easier deployment
+### Optimization Path
+- Phase 2: Current ($0.001125/search)
+- Phase 3 + caching: -60% = $0.00045/search
+- Phase 4 + minimax: -70% = $0.00035/search
 
 ---
 
 ## File Structure
 
 ```
-src/skill-recommendation/
-├── types.ts                              # Shared interfaces
-├── prompts.ts                            # System prompts & configs
-├── query-generator.ts                    # Enhanced query generation (with context)
-├── skill-finder.ts                       # Wraps `npx skills find`
-├── skill-aggregator.ts                   # Deduplicates & ranks
-├── skill-enricher.ts                     # Generates summaries
-├── openrouter-client.ts                  # OpenRouter API client
-├── pipeline.ts                           # Orchestrates all blocks
-├── logger.ts                             # Structured logging
-├── index.ts                              # Exports public API
-│
-└── extractors/                           # Phase 2: Context extraction (NEW)
-    ├── readme-parser.ts                  # Extracts README summary
-    ├── language-detector.ts              # Detects language breakdown
-    ├── framework-detector.ts             # Detects frameworks (React, Vue, etc.)
-    ├── runtime-detector.ts               # Detects runtime (Node.js, Python, etc.)
-    ├── dependency-parser.ts              # Parses existing packages
-    └── session-log-extractor.ts          # Extracts recent work themes
-
-cli/
-└── index.ts                              # Interactive CLI tool
-
-docs/plans/skill-recommendation/
-├── prd.md                                # This file (requirements, phases, roadmap)
-├── diagrams.md                           # Data flow & architecture diagrams
-├── PRODUCTION_SETUP.md                   # Setup & deployment guide
-└── phase1-results-may13.md               # Phase 1 evaluation results
+cli/commands/recommend/
+├── types.ts, prompts.ts, logger.ts
+├── query-generator.ts, skill-finder.ts, skill-aggregator.ts
+├── skill-enricher.ts, pipeline.ts, command.ts
+├── openrouter-client.ts (Mastra adapter)
+└── extractors/ (planned)
+    ├── readme-parser.ts, language-detector.ts, framework-detector.ts
+    ├── runtime-detector.ts, dependency-parser.ts, session-log-extractor.ts
 
 test/
 ├── pipeline-evaluation.test.ts
-├── query-generator-evaluation.test.ts
-└── skill-finder-evaluation.test.ts
+├── query-generator-evaluation.test.ts, skill-finder-evaluation.test.ts
+├── prompt-variation-evaluation.test.ts (Phase 2-2)
+├── context-file-types-evaluation.test.ts (Phase 2-2)
+├── context-improvement-evaluation.test.ts (Phase 2-2)
+└── fixtures/ (README samples)
 ```
 
 ---
 
-## How to Run Phase 1
+## Success Metrics
 
-**Installation** (global command):
+| Phase | Metric | Target | Status |
+|-------|--------|--------|--------|
+| 1 | E2E latency | <15s | ✅ |
+| 1 | Precision | >84% | ✅ |
+| 2 | Context latency | <300ms | 🔄 |
+| 2 | Duplicate filtering | >95% | 🔄 |
+| 2 | With context precision | >90% | ⏭️ |
+| 2-2 | Prompt variants tested | 3 variants | 📊 |
+| 2-2 | Context improvement | +3-10% | 📊 |
+| 3 | Cache hit rate | >60% | ⏭️ |
+| 3 | With cache latency | <5s | ⏭️ |
+
+---
+
+## How to Run
+
 ```bash
-npm install -g .
-# or with bun:
-bun install -g .
-```
+# Test query generation (current)
+bun run test-query-gen.ts                    # Fallback (no client)
+bun run test-query-gen-llm.ts                # With LLM
+bun run test-query-gen-llm-no-query.ts       # No query + context
 
-**Usage** (after installation):
-```bash
-# Setup
-export OPENROUTER_API_KEY=sk-or-v1-...
-
-# Search for skills
-bgng recommend skill "react testing"
-
-# Direct add
-bgng add skill owner/repo@skill-name
-```
-
-**Development** (without installation):
-```bash
-# Search for skills
-./bin/bgng recommend skill "react testing"
-
-# Direct add
-./bin/bgng add skill owner/repo@skill-name
-
-# Or with bun:
-bun run cli/index.ts recommend skill "react testing"
-
-# Run tests
+# Full tests (Phase 2-2, when ready)
 bun test
 ```
 
@@ -706,7 +295,11 @@ bun test
 
 ## References
 
-- Phase 1 Results: [phase1-results-may13.md](./phase1-results-may13.md)
-- Production Setup: [PRODUCTION_SETUP.md](./PRODUCTION_SETUP.md)
-- Global Skills Registry: https://skills.sh (91k+ skills)
-- OpenRouter Docs: https://openrouter.ai/docs
+- **APIs**: OpenRouter (minimax, gpt-3.5-turbo), npx skills CLI
+- **Registry**: https://skills.sh (91k+ skills)
+- **Project**: beginning-harness (TypeScript + Bun)
+- **Status Reports**: [diagrams.md](diagrams.md), [phase1-results-may13.md](phase1-results-may13.md)
+
+---
+
+**Updated**: 2026-05-18 | **Next Review**: After Phase 2 completion | **Owner**: —

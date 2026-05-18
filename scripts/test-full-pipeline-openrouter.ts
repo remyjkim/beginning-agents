@@ -1,4 +1,4 @@
-import { recommendSkillsWithOpenRouter, createBufferedLogger } from "../src/skill-recommendation";
+import { recommendSkillsWithOpenRouter, createBufferedLogger } from "../cli/commands/recommend";
 
 async function testFullPipeline() {
   console.log("Testing full skill recommendation pipeline with OpenRouter...\n");

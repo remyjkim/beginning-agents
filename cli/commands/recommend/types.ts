@@ -3,6 +3,7 @@
 
 export interface QueryGeneratorInput {
   query: string;
+  context?: ProjectContext;
 }
 
 export interface QueryGeneratorOutput {
@@ -50,8 +51,26 @@ export interface SkillRecommendationResult {
   refinedQueries: string[];
   skillsByQuery: Record<string, Skill[]>;
   aggregatedSkills: Skill[];
+  projectContext: ProjectContext;
+  contextLatencyMs: number;
   latencyMs: number;
   warnings: string[];
+}
+
+export interface RuntimeDetection {
+  runtimes: string[];
+  packageManagers: string[];
+}
+
+export interface ProjectContext {
+  readmeSummary: string;
+  languages: Record<string, number>;
+  frameworks: string[];
+  runtimes: RuntimeDetection;
+  existingPackages: string[];
+  recentSessionThemes: string[];
+  installedSkills: string[];
+  installedMcpServers: string[];
 }
 
 export type LogLevel = "debug" | "info" | "error";

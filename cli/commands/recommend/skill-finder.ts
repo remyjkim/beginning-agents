@@ -6,6 +6,7 @@ import type { Skill, SkillRecommendationLogger } from "./types";
 export interface FindSkillsOptions {
   command?: string[];
   limit?: number;
+  timeoutMs?: number;
   env?: Record<string, string | undefined>;
   cwd?: string;
   logger?: SkillRecommendationLogger;
@@ -24,8 +25,10 @@ type RawSkillResult = {
 
 export async function findSkills(query: string, options: FindSkillsOptions = {}): Promise<Skill[]> {
   const limit = options.limit ?? 5;
+  const timeoutMs = options.timeoutMs ?? 10_000;
   const baseCommand = options.command ?? ["npx", "skills", "find"];
   const args = [...baseCommand, query];
+  let timedOut = false;
 
   try {
     const proc = Bun.spawn(args, {
@@ -34,11 +37,21 @@ export async function findSkills(query: string, options: FindSkillsOptions = {})
       cwd: options.cwd,
       env: { ...process.env, ...options.env },
     });
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      proc.kill();
+    }, timeoutMs);
     const [stdout, stderr, exitCode] = await Promise.all([
       new Response(proc.stdout).text(),
       new Response(proc.stderr).text(),
       proc.exited,
     ]);
+    clearTimeout(timeout);
+
+    if (timedOut) {
+      options.logger?.error("Skill finder command timed out", { query, timeoutMs });
+      return [];
+    }
 
     if (exitCode !== 0) {
       options.logger?.error("Skill finder command failed", { query, exitCode, stderr: stderr.trim() });

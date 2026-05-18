@@ -134,7 +134,7 @@ graph TB
     RP --> RP_OUT["README Summary<br/>string"]
     LD --> LD_OUT["Languages<br/>Record&lt;string, number&gt;<br/>e.g. TypeScript: 75%"]
     FD --> FD_OUT["Frameworks<br/>string[]<br/>e.g. [React, Next.js]"]
-    RD --> RD_OUT["Runtimes<br/>string[]<br/>e.g. [Node.js, Bun]"]
+    RD --> RD_OUT["RuntimeDetection<br/>runtimes + packageManagers<br/>e.g. [Node.js, Bun] + [bun]"]
     DP --> DP_OUT["Existing Packages<br/>string[]<br/>e.g. [react, jest, ...]"]
     SLE --> SLE_OUT["Session Themes<br/>string[]<br/>e.g. [Testing, DevOps]"]
     
@@ -218,10 +218,10 @@ Combined themes: ["React testing", "DevOps", "E2E tests"]
 ```mermaid
 sequenceDiagram
     User->>CLI: recommend skill react testing
-    CLI->>QueryGen: generateQueries("react testing")
+    CLI->>QueryGen: generateQueries("react testing", context)
     QueryGen->>QueryGen: normalizeQuery()
     QueryGen->>OpenRouter: POST /chat/completions
-    Note over OpenRouter: system: "Generate 3 queries<br/>user: 'react testing'"
+    Note over OpenRouter: system: "Generate 3 queries<br/>user + languages/frameworks/packages/themes"
     OpenRouter-->>QueryGen: JSON array response
     QueryGen->>QueryGen: coerceQueryList()
     QueryGen->>QueryGen: dedupeQueries()

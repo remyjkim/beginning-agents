@@ -5,9 +5,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import sampleQueries from "./sample-queries.json";
-import { createBufferedLogger } from "../src/skill-recommendation/logger";
-import { recommendSkills } from "../src/skill-recommendation/pipeline";
-import type { Skill } from "../src/skill-recommendation/types";
+import { createBufferedLogger } from "../cli/commands/recommend/logger";
+import { recommendSkills } from "../cli/commands/recommend/pipeline";
+import type { Skill } from "../cli/commands/recommend/types";
 import { cleanupTempRoots, createTempRoot } from "./helpers";
 
 const tempRoots: string[] = [];
@@ -19,12 +19,14 @@ afterEach(async () => {
 describe("skill recommendation pipeline", () => {
   test("orchestrates query generation, skill finding, and aggregation", async () => {
     const result = await recommendSkills("frontend testing", {
+      context: emptyContext(),
       skillFinder: async (query) => fixtureSkills(query),
     });
 
-    expect(result.refinedQueries).toHaveLength(5);
-    expect(Object.keys(result.skillsByQuery)).toHaveLength(5);
-    expect(result.aggregatedSkills).toHaveLength(25);
+    expect(result.refinedQueries).toHaveLength(3);
+    expect(Object.keys(result.skillsByQuery)).toHaveLength(3);
+    expect(result.aggregatedSkills).toHaveLength(15);
+    expect(result.projectContext).toEqual(emptyContext());
     expect(result.warnings).toEqual([]);
     expect(result.latencyMs).toBeLessThan(2_000);
   });
@@ -32,6 +34,7 @@ describe("skill recommendation pipeline", () => {
   test("handles skill finder exceptions with empty-array fallback and error logs", async () => {
     const logger = createBufferedLogger();
     const result = await recommendSkills("database migration", {
+      context: emptyContext(),
       logger,
       skillFinder: async (query) => {
         if (query.includes("problem solution")) {
@@ -57,6 +60,7 @@ describe("skill recommendation pipeline", () => {
     const logger = createBufferedLogger(outputFile);
 
     await recommendSkills("agent native tool architecture", {
+      context: emptyContext(),
       logger,
       skillFinder: async (query) => fixtureSkills(query),
     });
@@ -76,9 +80,10 @@ describe("skill recommendation pipeline", () => {
 
     for (const sample of sampleQueries) {
       const result = await recommendSkills(sample.query, {
+        context: emptyContext(),
         skillFinder: async (query) => fixtureSkills(query),
       });
-      const enoughCandidates = result.aggregatedSkills.length >= 20 && result.aggregatedSkills.length <= 30;
+      const enoughCandidates = result.aggregatedSkills.length >= 12 && result.aggregatedSkills.length <= 15;
       const relevantCandidates = result.aggregatedSkills.filter((skill) => skill.relevanceScore >= 0.75).length;
       const relevanceRate = relevantCandidates / result.aggregatedSkills.length;
       if (result.latencyMs < 2_000 && enoughCandidates && relevanceRate >= 0.8) {
@@ -98,4 +103,15 @@ function fixtureSkills(query: string): Skill[] {
     relevanceScore: 0.95 - index * 0.03,
     description: `Candidate ${index + 1} for ${query}`,
   }));
+}
+
+function emptyContext() {
+  return {
+    readmeSummary: "",
+    languages: {},
+    frameworks: [],
+    runtimes: { runtimes: [], packageManagers: [] },
+    existingPackages: [],
+    recentSessionThemes: [],
+  };
 }

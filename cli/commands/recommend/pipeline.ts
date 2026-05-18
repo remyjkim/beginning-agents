@@ -1,14 +1,17 @@
 // ABOUTME: Orchestrates query generation, skill finding, aggregation, and instrumentation.
-// ABOUTME: Exposes inspectable intermediate outputs for Phase 1 evaluation.
+// ABOUTME: Exposes inspectable intermediate outputs for recommendation evaluation.
 
 import { aggregateSkills } from "./skill-aggregator";
+import { extractProjectContext } from "./extractors";
 import { findSkills } from "./skill-finder";
 import { generateQueries, type GenerateQueriesOptions } from "./query-generator";
 import { OpenRouterMastraTextClient } from "./openrouter-client";
 import { PRODUCTION_MASTRA_QUERY_CONFIG } from "./prompts";
-import type { Skill, SkillRecommendationLogger, SkillRecommendationResult } from "./types";
+import type { ProjectContext, Skill, SkillRecommendationLogger, SkillRecommendationResult } from "./types";
 
 export interface RecommendSkillsOptions extends GenerateQueriesOptions {
+  context?: ProjectContext;
+  repoPath?: string;
   skillFinder?: (query: string) => Promise<Skill[]>;
   logger?: SkillRecommendationLogger;
   targetLimit?: number;
@@ -20,8 +23,16 @@ export async function recommendSkills(
 ): Promise<SkillRecommendationResult> {
   const startedAt = performance.now();
   const warnings: string[] = [];
+  const contextStartedAt = performance.now();
+  const projectContext = await loadProjectContext(options, warnings);
+  const contextLatencyMs = performance.now() - contextStartedAt;
+  options.logger?.debug("Project context extracted", {
+    latencyMs: contextLatencyMs,
+    context: projectContext,
+  });
+
   const queryOutput = await generateQueries(
-    { query: userQuery },
+    { query: userQuery, context: projectContext },
     { client: options.client, config: options.config, logger: options.logger },
   );
   options.logger?.debug("Pipeline refined queries", {
@@ -55,7 +66,14 @@ export async function recommendSkills(
     skillsByQuery[result.query] = result.skills;
   }
 
-  const aggregatedSkills = aggregateSkills(skillsByQuery, options.targetLimit ?? 30);
+  const aggregatedSkills = aggregateSkills(skillsByQuery, options.targetLimit ?? 30, {
+    existingPackages: projectContext.existingPackages,
+    installedSkills: projectContext.installedSkills,
+    installedMcpServers: projectContext.installedMcpServers,
+    onFiltered: (count) => {
+      options.logger?.info("Filtered existing packages, skills, and MCP servers from recommendations", { count });
+    },
+  });
   const latencyMs = performance.now() - startedAt;
   options.logger?.debug("Pipeline aggregated candidates", {
     originalQuery: queryOutput.originalQuery,
@@ -67,6 +85,7 @@ export async function recommendSkills(
     latencyMs,
     refinedQueryCount: queryOutput.refinedQueries.length,
     candidateCount: aggregatedSkills.length,
+    contextLatencyMs,
   });
 
   return {
@@ -74,9 +93,32 @@ export async function recommendSkills(
     refinedQueries: queryOutput.refinedQueries,
     skillsByQuery,
     aggregatedSkills,
+    projectContext,
+    contextLatencyMs,
     latencyMs,
     warnings,
   };
+}
+
+async function loadProjectContext(options: RecommendSkillsOptions, warnings: string[]): Promise<ProjectContext> {
+  if (options.context) return options.context;
+
+  try {
+    return await extractProjectContext(options.repoPath ?? process.cwd());
+  } catch (error) {
+    warnings.push("Project context extraction failed");
+    options.logger?.error("Project context extraction failed; continuing with empty context", { error: formatError(error) });
+    return {
+      readmeSummary: "",
+      languages: {},
+      frameworks: [],
+      runtimes: { runtimes: [], packageManagers: [] },
+      existingPackages: [],
+      recentSessionThemes: [],
+      installedSkills: [],
+      installedMcpServers: [],
+    };
+  }
 }
 
 function formatError(error: unknown) {

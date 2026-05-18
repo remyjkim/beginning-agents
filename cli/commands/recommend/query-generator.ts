@@ -1,7 +1,7 @@
-// ABOUTME: Expands a user skill-discovery query into five focused search variants.
+// ABOUTME: Expands a user skill-discovery query into three focused search variants.
 // ABOUTME: Uses a Mastra-compatible text client with deterministic fallback behavior.
 
-import { DEFAULT_MASTRA_QUERY_CONFIG, QUERY_GENERATOR_SYSTEM_PROMPT } from "./prompts";
+import { buildQueryGeneratorPrompt, DEFAULT_MASTRA_QUERY_CONFIG, QUERY_GENERATOR_SYSTEM_PROMPT } from "./prompts";
 import type {
   MastraQueryGeneratorConfig,
   MastraTextClient,
@@ -10,7 +10,7 @@ import type {
   SkillRecommendationLogger,
 } from "./types";
 
-const QUERY_COUNT = 5;
+const QUERY_COUNT = 3;
 
 export interface GenerateQueriesOptions {
   client?: MastraTextClient;
@@ -23,12 +23,19 @@ export async function generateQueries(
   options: GenerateQueriesOptions = {},
 ): Promise<QueryGeneratorOutput> {
   const originalQuery = normalizeQuery(input.query);
-  if (!originalQuery) {
+  const hasContext = Boolean(input.context);
+
+  // No query and no context: return early with fallback
+  if (!originalQuery && !hasContext) {
     return { originalQuery: input.query, refinedQueries: fallbackQueries("skill discovery") };
   }
 
+  // No query but has context: continue to use context-based generation
+  // Has query: continue to use query-based generation
+  // Either way, if no client available, use fallback
   if (!options.client) {
-    return { originalQuery, refinedQueries: fallbackQueries(originalQuery) };
+    const fallbackKey = originalQuery || "skill discovery";
+    return { originalQuery: input.query, refinedQueries: fallbackQueries(fallbackKey) };
   }
 
   const config = { ...DEFAULT_MASTRA_QUERY_CONFIG, ...options.config };
@@ -36,20 +43,22 @@ export async function generateQueries(
   try {
     const response = await options.client.generateText({
       system: QUERY_GENERATOR_SYSTEM_PROMPT,
-      prompt: `User query: ${originalQuery}`,
+      prompt: buildQueryGeneratorPrompt(originalQuery, input.context),
       model: config.model,
       temperature: config.temperature,
       timeoutMs: config.timeoutMs,
     });
-    const refinedQueries = coerceQueryList(response, originalQuery, config.maxQueries);
+    const fallbackKey = originalQuery || "skill discovery";
+    const refinedQueries = coerceQueryList(response, fallbackKey, config.maxQueries);
     options.logger?.debug("Generated refined queries", { originalQuery, refinedQueries });
-    return { originalQuery, refinedQueries };
+    return { originalQuery: input.query, refinedQueries };
   } catch (error) {
     options.logger?.error("Query generation failed; using fallback queries", {
       originalQuery,
       error: formatError(error),
     });
-    return { originalQuery, refinedQueries: fallbackQueries(originalQuery) };
+    const fallbackKey = originalQuery || "skill discovery";
+    return { originalQuery: input.query, refinedQueries: fallbackQueries(fallbackKey) };
   }
 }
 
@@ -66,8 +75,6 @@ export function fallbackQueries(query: string): string[] {
     `${normalized} library package`,
     `${normalized} problem solution`,
     `${normalized} workflow pattern`,
-    `${normalized} use case`,
-    `${normalized} alternatives tools`,
   ];
 }
 
