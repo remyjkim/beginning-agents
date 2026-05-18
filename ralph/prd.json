@@ -1,0 +1,269 @@
+{
+  "project": "Skill Recommendation System",
+  "branchName": "ralph/phase2-context-aware",
+  "description": "Phase 2: Context-Aware Query Generation - Extract project context (README, languages, frameworks, runtime, dependencies, session logs) for smarter skill recommendations without duplicates",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create extractors directory and ProjectContext type",
+      "description": "As a developer, I need to set up the extractors module structure and define the ProjectContext interface.",
+      "acceptanceCriteria": [
+        "Create src/skill-recommendation/extractors/ directory",
+        "Add ProjectContext interface to src/skill-recommendation/types.ts with 6 fields: readmeSummary, languages, frameworks, runtimes, existingPackages, recentSessionThemes",
+        "All fields have proper TypeScript types",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Implement README Parser extractor",
+      "description": "As a developer, I need to extract project summary from README.md file.",
+      "acceptanceCriteria": [
+        "Create src/skill-recommendation/extractors/readme-parser.ts",
+        "Parse README.md and extract title and description (first paragraph)",
+        "Return fallback to package.json description if README missing",
+        "Latency < 100ms",
+        "Handle missing/malformed README gracefully",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Implement Language Detector extractor",
+      "description": "As a developer, I need to detect language breakdown in repository.",
+      "acceptanceCriteria": [
+        "Create src/skill-recommendation/extractors/language-detector.ts",
+        "Scan repository and detect languages by file extension",
+        "Return GitHub-style percentages (e.g., TypeScript: 75%)",
+        "Latency < 200ms",
+        "Handle large repositories efficiently (sample if needed)",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Implement Framework Detector extractor",
+      "description": "As a developer, I need to detect frameworks from dependencies.",
+      "acceptanceCriteria": [
+        "Create src/skill-recommendation/extractors/framework-detector.ts",
+        "Parse package.json, pyproject.toml, go.mod, Cargo.toml to find frameworks",
+        "Return array of detected frameworks: React, Vue, Angular, Express, Django, FastAPI, Flask, etc.",
+        "Latency < 50ms",
+        "Handle missing dependency files gracefully",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Implement Runtime Detector extractor",
+      "description": "As a developer, I need to detect runtime environment.",
+      "acceptanceCriteria": [
+        "Create src/skill-recommendation/extractors/runtime-detector.ts",
+        "Detect runtimes: Node.js, Python, Bun, Deno, Go, Ruby, Rust from config files",
+        "Return object with runtimes array and packageManagers array",
+        "Latency < 50ms",
+        "Check for: package.json, .python-version, go.mod, Gemfile, Cargo.toml, deno.json",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Implement Dependency Parser extractor",
+      "description": "As a developer, I need to get list of existing packages to avoid duplicates.",
+      "acceptanceCriteria": [
+        "Create src/skill-recommendation/extractors/dependency-parser.ts",
+        "Parse package.json (npm), pyproject.toml (pip), Gemfile (gem), Cargo.toml (cargo), go.mod (go)",
+        "Return flat array of package names from dependencies + devDependencies",
+        "Latency < 100ms",
+        "Handle missing manifest files gracefully",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Implement Session Log Extractor",
+      "description": "As a developer, I need to extract recent work themes from Claude Code session logs.",
+      "acceptanceCriteria": [
+        "Create src/skill-recommendation/extractors/session-log-extractor.ts",
+        "Read last 5 session logs from ~/.claude/logs/ (JSONL format)",
+        "Extract user messages for keywords: test, react, database, auth, API, deploy, performance, etc.",
+        "Extract tool usage from assistant messages (count tool_use occurrences)",
+        "Aggregate into 2-5 distinct themes (e.g., 'React testing', 'DevOps')",
+        "Latency < 300ms",
+        "Handle missing/corrupt logs gracefully",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Create context aggregator utility",
+      "description": "As a developer, I need to aggregate all 6 extractors into one call.",
+      "acceptanceCriteria": [
+        "Create src/skill-recommendation/extractors/index.ts",
+        "Export async function extractProjectContext(repoPath: string): Promise<ProjectContext>",
+        "Call all 6 extractors in parallel using Promise.all()",
+        "Handle partial failures (some extractors may fail, others succeed)",
+        "Total latency < 350ms (parallel overhead)",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Update Query Generator to accept ProjectContext",
+      "description": "As a developer, I need to modify query generator to use project context.",
+      "acceptanceCriteria": [
+        "Update src/skill-recommendation/query-generator.ts signature to accept context: ProjectContext",
+        "Update generateQueries() function to take context parameter",
+        "Pass context to OpenRouter API call",
+        "Update TypeScript types for input/output",
+        "Maintain backward compatibility (context is optional, default to Phase 1 behavior)",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Update Query Generator prompt with context",
+      "description": "As a developer, I need to enhance the prompt to use context for better queries.",
+      "acceptanceCriteria": [
+        "Update prompt in src/skill-recommendation/prompts.ts",
+        "Include languages, frameworks, runtime, existing packages, recent themes in prompt",
+        "Add instruction: 'NEVER recommend existing packages: [list]'",
+        "Add instruction: 'Consider recent work themes'",
+        "Request 3 diverse queries in JSON array format",
+        "Test with sample contexts",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Add context extraction to pipeline",
+      "description": "As a developer, I need to wire up context extraction into the main pipeline.",
+      "acceptanceCriteria": [
+        "Update src/skill-recommendation/pipeline.ts",
+        "Call extractProjectContext() at pipeline start (parallel with other initialization)",
+        "Pass context to query generator",
+        "Handle extraction failures (log warning, continue with empty context)",
+        "Measure and log context extraction latency",
+        "E2E pipeline latency remains < 15 seconds",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Add duplicate filtering to skill aggregation",
+      "description": "As a developer, I need to filter out skills that already exist in the repo.",
+      "acceptanceCriteria": [
+        "Update src/skill-recommendation/skill-aggregator.ts",
+        "After aggregation, filter out skills whose name matches existingPackages",
+        "Use case-insensitive matching (react == React)",
+        "Log number of filtered skills",
+        "Verify filtering accuracy > 95%",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Update CLI to extract and pass context",
+      "description": "As a user, I need CLI to automatically extract context without manual input.",
+      "acceptanceCriteria": [
+        "Update cli/index.ts main() function",
+        "Call extractProjectContext() from repo path (cwd or --repo flag)",
+        "Pass context to pipeline",
+        "Update usage messages to mention context is automatic",
+        "Handle context extraction errors gracefully (no breaking)",
+        "Verify CLI still works: bgng recommend skill \"query\"",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Test context extraction with multiple repos",
+      "description": "As a developer, I need to verify context extraction works across different project types.",
+      "acceptanceCriteria": [
+        "Create test fixtures: TypeScript+React, Python+Django, Go, mixed monorepo, minimal project",
+        "Test each extractor independently on all fixtures",
+        "Test full context extraction (all 6 parallel) on all fixtures",
+        "Verify accuracy: languages > 90%, frameworks > 90%, runtime detection > 90%",
+        "Measure latencies (should be < 300ms total)",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "E2E verification: context-aware recommendations",
+      "description": "As a user, I need to verify that context makes recommendations better.",
+      "acceptanceCriteria": [
+        "Run bgng recommend skill \"testing\" on a TypeScript+React project",
+        "Verify top 5 does NOT include: jest (if already installed), react, typescript",
+        "Verify top 5 includes React-specific testing tools (e.g., React Testing Library variants)",
+        "Verify context extraction completed in < 300ms",
+        "Total latency < 15 seconds",
+        "Compare with Phase 1: Phase 2 should have better relevance",
+        "Verify in browser using dev-browser skill to see UI"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Update PRD and diagrams with Phase 2",
+      "description": "As a team member, I need documentation of Phase 2 implementation.",
+      "acceptanceCriteria": [
+        "Update docs/plans/skill-recommendation/prd.md with Phase 2 section",
+        "Update docs/plans/skill-recommendation/diagrams.md with new diagrams",
+        "Add context extraction pipeline diagram",
+        "Add session log extraction process diagram",
+        "Update latency breakdown diagram",
+        "Document all 6 extractors in PRD",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
