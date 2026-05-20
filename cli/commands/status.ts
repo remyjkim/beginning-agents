@@ -12,6 +12,18 @@ export class StatusCommand extends BaseCommand {
   static override usage = BaseCommand.Usage({
     category: "General",
     description: "Show the current repo, aggregation, target, and count status.",
+    details: `
+      Prints the resolved repo root, agents directory, home directory, enabled
+      targets, and counts for skills and MCP servers. When run inside a project
+      with .agents/bgng/config.json, includes project overlay counts and active
+      extension overrides.
+
+      This command is read-only.
+    `,
+    examples: [
+      ["Quick status snapshot", "bgng status"],
+      ["JSON for tooling", "bgng status --json"],
+    ],
   });
 
   json = Option.Boolean("--json", false, {

@@ -12,6 +12,19 @@ export class WriteCommand extends BaseCommand {
   static override usage = BaseCommand.Usage({
     category: "General",
     description: "Write effective bgng config to downstream local agent tools.",
+    details: `
+      Reads the effective config from machine defaults, project overlays, and
+      extension-derived settings, then materializes it into enabled downstream
+      targets such as Claude, Codex, and Cursor.
+
+      Use --dry-run to preview planned changes. Use --mcp-only or --skills-only
+      to limit materialization to one surface. Use --target to write one target.
+    `,
+    examples: [
+      ["Preview all writes", "bgng write --dry-run"],
+      ["Write only MCP configuration", "bgng write --mcp-only"],
+      ["Write only to Claude", "bgng write --target=claude"],
+    ],
   });
 
   dryRun = Option.Boolean("--dry-run", false, {

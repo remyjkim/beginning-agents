@@ -20,7 +20,37 @@ async function addParallelSkills(repoRoot: string) {
   }
 }
 
+function envFor(fixture: Awaited<ReturnType<typeof scaffoldCliFixture>>) {
+  return {
+    AGENTS_REPO_ROOT: fixture.repoRoot,
+    AGENTS_HOME_DIR: fixture.homeDir,
+    AGENTS_DIR: fixture.agentsDir,
+  };
+}
+
 describe("bgng skills mutate", () => {
+  test("skills curate --json emits a curatedPath payload", async () => {
+    const fixture = await scaffoldCliFixture({ curatedSkillNames: [] });
+    tempRoots.push(fixture.root);
+
+    const result = await runAgentsCli(["skills", "curate", "alpha", "--json"], envFor(fixture));
+
+    expect(result.exitCode).toBe(0);
+    const parsed = JSON.parse(result.stdout) as { curatedPath: string };
+    expect(parsed.curatedPath).toContain("alpha");
+  });
+
+  test("skills uncurate --json emits an uncuratedPath payload", async () => {
+    const fixture = await scaffoldCliFixture({ curatedSkillNames: ["alpha"] });
+    tempRoots.push(fixture.root);
+
+    const result = await runAgentsCli(["skills", "uncurate", "alpha", "--json"], envFor(fixture));
+
+    expect(result.exitCode).toBe(0);
+    const parsed = JSON.parse(result.stdout) as { uncuratedPath: string };
+    expect(parsed.uncuratedPath).toContain("alpha");
+  });
+
   test("curate creates the agents-layer symlink for a package-backed shared skill", async () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
