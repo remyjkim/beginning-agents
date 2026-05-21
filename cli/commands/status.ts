@@ -2,7 +2,7 @@
 // ABOUTME: Provides both human-readable and JSON output for operators and automation.
 
 import { Option } from "clipanion";
-import { buildStatusReport } from "../core/diagnostics";
+import { answerWhy, buildDiagnosticsSections, buildStatusReport, explainStatus } from "../core/diagnostics";
 import { renderJson, renderTable } from "../core/output";
 import { BaseCommand } from "./base";
 
@@ -30,7 +30,43 @@ export class StatusCommand extends BaseCommand {
     description: "Emit machine-readable JSON output.",
   });
 
+  explain = Option.Boolean("--explain", false, {
+    description: "Show provenance for cards, skills, MCP servers, targets, and write records.",
+  });
+
+  why = Option.String("--why", {
+    description: "Explain why a skill, server, extension, target, or card is active.",
+  });
+
   async execute() {
+    if (this.why) {
+      const answer = await answerWhy(
+        this.context.repoRoot,
+        this.context.agentsDir,
+        this.context.homeDir,
+        this.context.projectConfigPath,
+        this.why,
+      );
+      if (!answer.ok) {
+        this.context.stderr.write(answer.message);
+        return 1;
+      }
+      this.context.stdout.write(answer.message);
+      return 0;
+    }
+
+    if (this.explain) {
+      this.context.stdout.write(
+        await explainStatus(
+          this.context.repoRoot,
+          this.context.agentsDir,
+          this.context.homeDir,
+          this.context.projectConfigPath,
+        ),
+      );
+      return 0;
+    }
+
     const status = await buildStatusReport(
       this.context.repoRoot,
       this.context.agentsDir,
@@ -39,7 +75,13 @@ export class StatusCommand extends BaseCommand {
     );
 
     if (this.json) {
-      this.context.stdout.write(renderJson(status));
+      const sections = await buildDiagnosticsSections(
+        this.context.repoRoot,
+        this.context.agentsDir,
+        this.context.homeDir,
+        this.context.projectConfigPath,
+      );
+      this.context.stdout.write(renderJson({ ...status, sections }));
       return 0;
     }
 
