@@ -29,6 +29,8 @@ import { SearchMcpCommand } from "./commands/search/mcp";
 import { SearchSkillCommand } from "./commands/search/skill";
 import { ScanCommand } from "./commands/scan";
 import { StatusCommand } from "./commands/status";
+import { StoreMigrateCommand } from "./commands/store/migrate";
+import { StoreStatusCommand } from "./commands/store/status";
 import { SkillsCurateCommand } from "./commands/skills/curate";
 import { SkillsListCommand } from "./commands/skills/list";
 import { SkillsPackagesAddCommand } from "./commands/skills/packages/add";
@@ -36,6 +38,7 @@ import { SkillsPackagesListCommand } from "./commands/skills/packages/list";
 import { SkillsPackagesShowCommand } from "./commands/skills/packages/show";
 import { SkillsUncurateCommand } from "./commands/skills/uncurate";
 import { WriteCommand } from "./commands/write";
+import { detectLegacyLayout } from "./core/migration";
 
 const cli = new Cli({
   binaryLabel: "bgng",
@@ -72,6 +75,8 @@ cli.register(McpWriteCommand);
 cli.register(McpListCommand);
 cli.register(WriteCommand);
 cli.register(ScanCommand);
+cli.register(StoreMigrateCommand);
+cli.register(StoreStatusCommand);
 cli.register(StatusCommand);
 cli.register(DoctorCommand);
 cli.register(InitCommand);
@@ -82,6 +87,9 @@ const context = createAgentsContext();
 
 try {
   validateRepoRoot(context.repoRoot);
+  if (detectLegacyLayout(context.agentsDir)) {
+    process.stderr.write("WARNING: pre-cards layout detected. Run `bgng store migrate` to upgrade.\n");
+  }
   await cli.runExit(process.argv.slice(2), context);
 } catch (error) {
   process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
