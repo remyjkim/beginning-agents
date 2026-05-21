@@ -196,7 +196,7 @@ describe("bgng write", () => {
     }, projectDir);
 
     expect(result.exitCode).toBe(0);
-    const settings = JSON.parse(await readFile(fixture.claudeSettings, "utf8")) as { mcpServers?: Record<string, { command?: string }> };
+    const settings = JSON.parse(await readFile(join(projectDir, ".claude", "settings.json"), "utf8")) as { mcpServers?: Record<string, { command?: string }> };
     expect(settings.mcpServers?.github?.command).toBe("npx");
   });
 });

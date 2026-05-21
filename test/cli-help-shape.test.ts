@@ -25,6 +25,7 @@ function extractCommandPaths(topLevelHelp: string) {
         .replace(/^bgng\s+/, "")
         .replace(/\[[^\]]+\]/g, "")
         .replace(/<[^>]+>/g, "")
+        .replace(/\.\.\./g, "")
         .split(/\s+/)
         .filter(Boolean),
     )

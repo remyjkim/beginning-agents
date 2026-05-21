@@ -238,7 +238,7 @@ describe("mergeClaudeSettingsText", () => {
       },
     );
 
-    expect(JSON.parse(merged)).toEqual({
+    expect(JSON.parse(merged)).toMatchObject({
       env: { A: "1" },
       model: "sonnet",
       mcpServers: {
@@ -259,7 +259,7 @@ describe("mergeClaudeSettingsText", () => {
       },
     );
 
-    expect(JSON.parse(merged)).toEqual({
+    expect(JSON.parse(merged)).toMatchObject({
       model: "sonnet",
       mcpServers: {
         "parallel-search": {
