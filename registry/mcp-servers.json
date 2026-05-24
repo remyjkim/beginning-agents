@@ -39,11 +39,11 @@
       "optional": false
     },
     "notion": {
-      "description": "Notion workspace access",
-      "transport": "platform-provided",
-      "provider": "claude.ai",
+      "description": "Notion workspace access via the official hosted MCP server",
+      "transport": "http",
+      "url": "https://mcp.notion.com/mcp",
       "auth": "oauth",
-      "notes": "Requires Claude.ai OAuth flow. Other tools need a separate Notion MCP server.",
+      "notes": "OAuth per user. After sync, run /mcp in Claude Code or `codex mcp login notion` to authenticate.",
       "optional": true
     },
     "slack": {

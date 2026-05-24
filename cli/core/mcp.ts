@@ -44,6 +44,7 @@ function toJsonServerConfig(server: RegistryServer) {
   }
 
   return {
+    type: server.transport,
     url: server.url,
   };
 }
@@ -59,6 +60,7 @@ function toCodexServerConfig(server: RegistryServer) {
 
   return {
     url: server.url,
+    enabled: true,
   };
 }
 
