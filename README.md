@@ -133,7 +133,7 @@ The normal write path is conservative:
 
 - `bgng write --dry-run` previews changes
 - write creates or replaces managed symlinks and generated MCP config
-- stale downstream skill symlinks are reported, not deleted
+- BGNG-owned stale downstream skill symlinks are removed on the next write; user-owned replacements are preserved and warned
 - `bgng doctor` reports issues without fixing them
 
 ## Usage Modes
@@ -228,7 +228,7 @@ Skill commands:
 
 Export commands:
 
-- `bgng export sessions [--dry-run] [--out <path>]`
+- `bgng export sessions [--dry-run] [--gzip] [--out <path>]`
 
 Most inspection commands support `--json`. Write commands support `--dry-run`.
 
@@ -262,6 +262,13 @@ bgng write --dry-run
 bgng write
 ```
 
+Wave 1 card behavior:
+
+- card-bundled skill content is authoritative for materialization and writes from the immutable card store path
+- if a card and a non-card source provide the same skill name, the card copy wins
+- `bgng write --dry-run` annotates each planned skill symlink with the winning resolution layer
+- unresolved included skill names fail `bgng write` before any downstream mutation
+
 Run only one side when needed:
 
 ```bash
@@ -280,9 +287,29 @@ bgng mcp write --target=cursor
 
 `bgng export sessions` discovers and archives all session log files (`.jsonl`) from Claude Code and Codex belonging to the current project. Sessions are discovered by matching project slug prefixes (derived by replacing every `/` in the project path with `-`); this automatically includes all git worktrees.
 
-The archive is written as an uncompressed `.tar` file with flat, source-prefixed paths: `claude/<file>.jsonl` for main Claude sessions, `claude/agents/<file>.jsonl` for Claude subagent logs, and `codex/<file>.jsonl` for Codex rollouts. The default destination path includes a timestamp: `.agents/bgng/session-log-exports/<timestamp>.tar`.
+### Archive layout
 
-Use `--dry-run` to preview files that would be archived without writing, or `--out <path>` to override the archive destination. Missing source roots like `~/.claude/projects/` or `~/.codex/sessions/` are skipped silently and do not produce an error.
+Archives use flat, source-prefixed member paths:
+
+- `claude/<file>.jsonl` — main Claude sessions
+- `claude/agents/<file>.jsonl` — Claude subagent logs
+- `codex/<file>.jsonl` — Codex rollouts
+
+The default destination is `.agents/bgng/session-log-exports/<timestamp>.tar` (or `.tar.gz` with `--gzip`). Use `--out <path>` to override the destination, or `--dry-run` to preview files without writing.
+
+### Upload-ready archives
+
+Pass `--gzip` to produce a `.tar.gz` directly. The recommended artifact for web upload is the `.tar.gz` form because it is smaller and travels well over HTTP.
+
+The archiver enforces explicit cleanliness guarantees:
+
+- macOS metadata is suppressed (`COPYFILE_DISABLE=1`, `--no-mac-metadata`) so no AppleDouble (`._*`) companions are emitted
+- every archive is validated after write — entries outside the `claude/`/`codex/` namespace, AppleDouble entries, `__MACOSX/`, `.DS_Store`, or other hidden dotfiles cause the command to fail and the polluted archive to be removed
+- archive member count must match the discovered input count
+
+**Do not manually recompress archives** (e.g. by Finder-zipping `.agents/bgng/session-log-exports/`). Manual repackaging bypasses these guarantees and can introduce AppleDouble sidecars that break downstream analyzers. Upload the file BGNG produces as-is.
+
+Missing source roots like `~/.claude/projects/` or `~/.codex/sessions/` are skipped silently and do not produce an error.
 
 ## MCP Registry
 
@@ -555,9 +582,9 @@ Layer 2: pnpm / Cargo / pip — app dependencies + lockfile
 
 What cards pin:
 
-- card versions and integrity in `card.lock`
-- bundle versions (skill-bundle dependencies of cards)
-- inline content shipped in cards (skills, MCP server definitions) by sha256
+- card versions and content-tree integrity in `card.lock`
+- per-card bundled skill attribution in `card.lock`
+- inline content shipped in cards (skills, MCP server definitions) by sha256 content hashing
 - the project overlay
 
 What cards do not pin:
@@ -588,7 +615,7 @@ It reports:
 - missing generated config files
 - project config issues
 
-It does not mutate local state.
+It does not mutate local state. Unresolved `skills.include` names are a separate write-time contract: `bgng write` fails before mutation, while `doctor` reports the same problem in diagnostics output.
 
 ## Optional Extensions
 
