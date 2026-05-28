@@ -3,23 +3,15 @@
 
 import { afterEach, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { cleanupTempRoots, runAgentsCli, scaffoldCliFixture } from "./helpers";
+import { cleanupTempRoots, envFor, publishCardWithSkills, runAgentsCli, scaffoldCliFixture } from "./helpers";
 
 const tempRoots: string[] = [];
 
 afterEach(async () => {
   await cleanupTempRoots(tempRoots);
 });
-
-function envFor(fixture: Awaited<ReturnType<typeof scaffoldCliFixture>>) {
-  return {
-    AGENTS_REPO_ROOT: fixture.repoRoot,
-    AGENTS_HOME_DIR: fixture.homeDir,
-    AGENTS_DIR: fixture.agentsDir,
-  };
-}
 
 test("card new creates a source with card.json and persists scope", async () => {
   const fixture = await scaffoldCliFixture();
@@ -46,14 +38,7 @@ test("card new fails for unscoped non-interactive names without authoring scope"
 test("card publish creates immutable version and card show displays it", async () => {
   const fixture = await scaffoldCliFixture();
   tempRoots.push(fixture.root);
-  expect((await runAgentsCli(["card", "new", "@me/backend", "--no-git"], envFor(fixture))).exitCode).toBe(0);
-  const manifestPath = join(fixture.agentsDir, "bgng", "sources", "@me", "backend", "card.json");
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-  manifest.skills = { include: ["alpha"] };
-  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-
-  const published = await runAgentsCli(["card", "publish", "@me/backend"], envFor(fixture));
-  expect(published.exitCode).toBe(0);
+  await publishCardWithSkills(fixture, { name: "@me/backend", skills: ["alpha"] });
   expect(existsSync(join(fixture.agentsDir, "bgng", "cards", "@me", "backend", "1.0.0", "card.json"))).toBe(true);
 
   const show = await runAgentsCli(["card", "show", "@me/backend@1.0.0"], envFor(fixture));
@@ -88,20 +73,64 @@ test("card publish rejects package contract mismatch", async () => {
   expect(result.stderr).toContain("package.json.name");
 });
 
+test("card publish fails when skills.include references a missing source directory", async () => {
+  const fixture = await scaffoldCliFixture();
+  tempRoots.push(fixture.root);
+  await runAgentsCli(["card", "new", "@me/backend", "--no-git"], envFor(fixture));
+  const manifestPath = join(fixture.agentsDir, "bgng", "sources", "@me", "backend", "card.json");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  manifest.skills = { include: ["polish"] };
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+  const published = await runAgentsCli(["card", "publish", "@me/backend"], envFor(fixture));
+
+  expect(published.exitCode).not.toBe(0);
+  expect(published.stderr).toContain("missing skill directory 'polish'");
+});
+
+test("card publish succeeds when every skills.include has a matching source directory", async () => {
+  const fixture = await scaffoldCliFixture();
+  tempRoots.push(fixture.root);
+  await runAgentsCli(["card", "new", "@me/backend", "--no-git"], envFor(fixture));
+  const sourceRoot = join(fixture.agentsDir, "bgng", "sources", "@me", "backend");
+  const manifestPath = join(sourceRoot, "card.json");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  manifest.skills = { include: ["polish"] };
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  await mkdir(join(sourceRoot, "skills", "polish"), { recursive: true });
+  await writeFile(join(sourceRoot, "skills", "polish", "SKILL.md"), "---\nname: polish\ndescription: polish\n---\n");
+
+  const published = await runAgentsCli(["card", "publish", "@me/backend"], envFor(fixture));
+
+  expect(published.exitCode).toBe(0);
+});
+
 test("card diff classifies structural changes", async () => {
   const fixture = await scaffoldCliFixture();
   tempRoots.push(fixture.root);
-  expect((await runAgentsCli(["card", "new", "@me/backend", "--no-git"], envFor(fixture))).exitCode).toBe(0);
-  expect((await runAgentsCli(["card", "publish", "@me/backend"], envFor(fixture))).exitCode).toBe(0);
-  const manifestPath = join(fixture.agentsDir, "bgng", "sources", "@me", "backend", "card.json");
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-  manifest.version = "1.1.0";
-  manifest.skills = { include: ["alpha"] };
-  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-  expect((await runAgentsCli(["card", "publish", "@me/backend"], envFor(fixture))).exitCode).toBe(0);
+  await publishCardWithSkills(fixture, { name: "@me/backend", version: "1.0.0", skills: [] });
+  await publishCardWithSkills(fixture, { name: "@me/backend", version: "1.1.0", skills: ["alpha"] });
 
   const diff = await runAgentsCli(["card", "diff", "@me/backend@1.0.0", "@me/backend@1.1.0"], envFor(fixture));
 
   expect(diff.exitCode).toBe(0);
   expect(diff.stdout).toContain("Classification: minor");
+});
+
+test("card new fails on a legacy layout and points the user at store migrate", async () => {
+  const fixture = await scaffoldCliFixture();
+  tempRoots.push(fixture.root);
+  await mkdir(join(fixture.agentsDir, "bgng"), { recursive: true });
+  await mkdir(join(fixture.agentsDir, "library"), { recursive: true });
+  await mkdir(join(fixture.agentsDir, "packages", "skills", "@acme", "skills", "1.0.0"), { recursive: true });
+  await writeFile(join(fixture.agentsDir, "bgng", "config.json"), JSON.stringify({ version: 1, optional: {} }, null, 2));
+  await writeFile(
+    join(fixture.agentsDir, "library", "mcp-servers.json"),
+    JSON.stringify({ version: 1, servers: {} }, null, 2),
+  );
+
+  const result = await runAgentsCli(["card", "new", "@me/backend", "--no-git"], envFor(fixture));
+
+  expect(result.exitCode).not.toBe(0);
+  expect(result.stderr).toContain("bgng store migrate");
 });

@@ -26,3 +26,18 @@ test("validateCardManifest rejects card-level skills.exclude", () => {
   expect(result.ok).toBe(false);
   expect(result.errors).toContain("skills.exclude is not allowed in card manifests");
 });
+
+test("validateCardManifest rejects non-empty skills.shared", () => {
+  const result = validateCardManifest({
+    name: "@me/x",
+    version: "1.0.0",
+    skills: { include: ["alpha"], shared: ["beta"] },
+  });
+  expect(result.ok).toBe(false);
+  expect(result.errors.join("\n")).toContain("skills.shared is reserved for Wave 2");
+});
+
+test("validateCardManifest accepts skills.shared if absent or empty array", () => {
+  expect(validateCardManifest({ name: "@me/x", version: "1.0.0", skills: { include: ["a"] } }).ok).toBe(true);
+  expect(validateCardManifest({ name: "@me/x", version: "1.0.0", skills: { include: ["a"], shared: [] } }).ok).toBe(true);
+});

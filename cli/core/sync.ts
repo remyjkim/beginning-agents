@@ -9,6 +9,7 @@ import { loadConfig } from "./config";
 import { loadRegistry } from "./registry";
 import { buildActiveServers, mergeClaudeSettingsText, mergeCodexTomlText, renderCursorConfig } from "./mcp";
 import { syncSkills as syncSkillsCore } from "./skills";
+import type { CardLockEntry } from "./card-lock";
 import { mergeCardManifestsIntoProjectConfig, resolveProjectCards } from "./card-project";
 import { loadEffectiveConfig } from "./user-config";
 import { loadMcpLibrary } from "./mcp-library";
@@ -214,10 +215,11 @@ export async function syncRepository(options: SyncOptions = {}): Promise<SyncRes
     generatedDir: projectRoot ? join(projectRoot, ".agents", "bgng", "generated") : resolveStoreGeneratedDir(normalized.agentsDir),
   };
   const previousRecord = loadWriteRecord(recordPath);
+  let lockedCards: CardLockEntry[] = [];
 
   if (projectConfigPath) {
     const projectConfig = await loadProjectConfig(projectConfigPath);
-    const lockedCards = projectConfig.cards ? await resolveProjectCards(normalized.agentsDir, projectConfig.cards) : [];
+    lockedCards = projectConfig.cards ? await resolveProjectCards(normalized.agentsDir, projectConfig.cards) : [];
     const projectWithCards = mergeCardManifestsIntoProjectConfig(
       projectConfig,
       lockedCards.map((card) => card.manifest),
@@ -244,7 +246,7 @@ export async function syncRepository(options: SyncOptions = {}): Promise<SyncRes
   }
 
   if (!normalized.mcpOnly) {
-    const skillsResult = await syncSkillsCore(scopedOptions, skillOverrides);
+    const skillsResult = await syncSkillsCore(scopedOptions, skillOverrides, lockedCards);
     result.changes.push(...skillsResult.changes);
     result.warnings.push(...skillsResult.warnings);
     result.managedPaths?.push(...(skillsResult.managedPaths ?? []));

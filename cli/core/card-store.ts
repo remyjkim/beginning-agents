@@ -3,9 +3,10 @@
 
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { cp, readdir, readFile, writeFile } from "node:fs/promises";
+import { cp, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { assertValidCardManifest, isCardScopeName, isCardUnscopedName, type CardManifest } from "./card-manifest";
+import { detectLegacyLayout } from "./migration";
 import { compareVersions, gt, isStrictSemver, maxSatisfying, validRange } from "./semver-utils";
 import {
   resolveCardPackageDir,
@@ -58,6 +59,12 @@ function nowIso() {
 async function writeJson(pathValue: string, value: unknown) {
   mkdirSync(dirname(pathValue), { recursive: true });
   await writeFile(pathValue, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function assertNoLegacyLayout(agentsDir: string) {
+  if (detectLegacyLayout(agentsDir)) {
+    throw new Error("Legacy bgng layout detected. Run `bgng store migrate` before authoring or applying cards.");
+  }
 }
 
 export async function ensureStoreInitialized(agentsDir: string) {
@@ -139,6 +146,7 @@ export async function createCardSource(options: {
   scope?: string;
   noGit?: boolean;
 }) {
+  assertNoLegacyLayout(options.agentsDir);
   if (isCardUnscopedName(options.name) && !options.scope) {
     throw new Error("Unscoped card names require --scope or machine authoring.scope");
   }
@@ -214,13 +222,86 @@ export async function readPublishedCardManifest(agentsDir: string, name: string,
   return manifest;
 }
 
-export function computeCardIntegrity(manifest: CardManifest) {
-  return `sha256-${createHash("sha256").update(JSON.stringify(manifest)).digest("hex")}`;
+async function walkVersionTree(versionDir: string): Promise<Array<{ relPath: string; absPath: string; mode: number }>> {
+  const entries: Array<{ relPath: string; absPath: string; mode: number }> = [];
+
+  async function recurse(currentAbs: string, currentRel: string) {
+    const dirEntries = await readdir(currentAbs, { withFileTypes: true });
+    for (const dirent of dirEntries) {
+      const relPath = currentRel ? `${currentRel}/${dirent.name}` : dirent.name;
+      const absPath = join(currentAbs, dirent.name);
+      if (relPath === ".integrity") {
+        continue;
+      }
+      if (dirent.isDirectory()) {
+        await recurse(absPath, relPath);
+        continue;
+      }
+      if (!dirent.isFile() && !dirent.isSymbolicLink()) {
+        continue;
+      }
+      const stats = await stat(absPath);
+      if (stats.isFile()) {
+        entries.push({ relPath, absPath, mode: stats.mode });
+      }
+    }
+  }
+
+  await recurse(versionDir, "");
+  entries.sort((a, b) => a.relPath.localeCompare(b.relPath));
+  return entries;
+}
+
+export async function computeCardIntegrity(versionDir: string) {
+  const entries = await walkVersionTree(versionDir);
+  const records: Array<{ p: string; m: "x" | "-"; h: string }> = [];
+  for (const entry of entries) {
+    const content = await readFile(entry.absPath);
+    const fileHash = createHash("sha256").update(content).digest("hex");
+    records.push({
+      p: entry.relPath,
+      m: (entry.mode & 0o111) !== 0 ? "x" : "-",
+      h: fileHash,
+    });
+  }
+  const canonical = JSON.stringify(records);
+  return `sha256-${createHash("sha256").update(canonical).digest("hex")}`;
+}
+
+function validatePublishedSkillDirs(versionDir: string, manifest: CardManifest) {
+  for (const skillName of manifest.skills?.include ?? []) {
+    const skillDir = join(versionDir, "skills", skillName);
+    const skillMd = join(skillDir, "SKILL.md");
+    if (!existsSync(skillDir)) {
+      throw new Error(
+        `Card ${manifest.name}@${manifest.version} is missing required skill directory '${skillName}'. The card must be republished from a complete source.`,
+      );
+    }
+    if (!existsSync(skillMd)) {
+      throw new Error(
+        `Card ${manifest.name}@${manifest.version} is missing SKILL.md for required skill '${skillName}'. The card must be republished from a complete source.`,
+      );
+    }
+  }
 }
 
 export async function publishCard(agentsDir: string, name: string) {
+  assertNoLegacyLayout(agentsDir);
   await ensureStoreInitialized(agentsDir);
   const manifest = await readCardSourceManifest(agentsDir, name);
+  const sourceDir = resolveCardSourceDir(agentsDir, manifest.name);
+  for (const skillName of manifest.skills?.include ?? []) {
+    const skillDir = join(sourceDir, "skills", skillName);
+    const skillMd = join(skillDir, "SKILL.md");
+    if (!existsSync(skillDir)) {
+      throw new Error(
+        `Card source is missing skill directory '${skillName}' declared in skills.include. Expected: ${skillDir}`,
+      );
+    }
+    if (!existsSync(skillMd)) {
+      throw new Error(`Card source skill '${skillName}' is missing SKILL.md. Expected: ${skillMd}`);
+    }
+  }
   const packagePath = join(resolveCardSourceDir(agentsDir, manifest.name), "package.json");
   if (existsSync(packagePath)) {
     const packageJson = JSON.parse(await readFile(packagePath, "utf8")) as { name?: string; version?: string };
@@ -241,7 +322,8 @@ export async function publishCard(agentsDir: string, name: string) {
     verbatimSymlinks: true,
     force: false,
   });
-  const integrity = computeCardIntegrity(manifest);
+  validatePublishedSkillDirs(versionDir, manifest);
+  const integrity = await computeCardIntegrity(versionDir);
   await writeFile(join(versionDir, ".integrity"), `${integrity}\n`);
   const index = await loadCardPackageIndex(agentsDir, manifest.name);
   index.versions = index.versions.filter((entry) => entry.version !== manifest.version);
@@ -263,6 +345,7 @@ async function listPublishedVersions(agentsDir: string, name: string) {
 }
 
 export async function resolveCard(agentsDir: string, ref: string): Promise<ResolvedCard> {
+  assertNoLegacyLayout(agentsDir);
   const parsed = parseCardRef(ref);
   if (parsed.filePath) {
     const dir = resolve(parsed.filePath);
@@ -272,12 +355,13 @@ export async function resolveCard(agentsDir: string, ref: string): Promise<Resol
     }
     const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as CardManifest;
     assertValidCardManifest(manifest);
+    validatePublishedSkillDirs(dir, manifest);
     return {
       name: manifest.name,
       requested: ref,
       version: manifest.version,
       dir,
-      integrity: computeCardIntegrity(manifest),
+      integrity: await computeCardIntegrity(dir),
       manifest,
     };
   }
@@ -291,14 +375,27 @@ export async function resolveCard(agentsDir: string, ref: string): Promise<Resol
     throw new Error(`No published version satisfies ${ref}`);
   }
   const manifest = await readPublishedCardManifest(agentsDir, parsed.name, version);
+  const versionDir = resolveCardVersionDir(agentsDir, parsed.name, version);
+  validatePublishedSkillDirs(versionDir, manifest);
+  const computedIntegrity = await computeCardIntegrity(versionDir);
   const index = await loadCardPackageIndex(agentsDir, parsed.name);
-  const integrity = index.versions.find((entry) => entry.version === version)?.integrity ?? computeCardIntegrity(manifest);
+  const recordedEntry = index.versions.find((entry) => entry.version === version);
+  if (recordedEntry && recordedEntry.integrity !== computedIntegrity) {
+    console.info(
+      `[bgng] upgraded integrity hash for ${parsed.name}@${version}: was ${recordedEntry.integrity.slice(0, 20)}..., now ${computedIntegrity.slice(0, 20)}...`,
+    );
+    recordedEntry.integrity = computedIntegrity;
+    await writeCardPackageIndex(agentsDir, index);
+    await writeFile(join(versionDir, ".integrity"), `${computedIntegrity}\n`);
+  } else if (!recordedEntry) {
+    await writeFile(join(versionDir, ".integrity"), `${computedIntegrity}\n`);
+  }
   return {
     name: parsed.name,
     requested: formatCardSpec(parsed.name, range),
     version,
-    dir: resolveCardVersionDir(agentsDir, parsed.name, version),
-    integrity,
+    dir: versionDir,
+    integrity: computedIntegrity,
     manifest,
   };
 }

@@ -39,8 +39,7 @@ export function detectLegacyLayout(agentsDir: string): boolean {
   const hasLegacyConfig = existsSync(resolveUserConfigPath(agentsDir));
   const hasLegacyLibrary = existsSync(resolveLibraryDir(agentsDir));
   const hasLegacyPackages = existsSync(join(agentsDir, "packages"));
-  const hasStore = existsSync(resolveStoreMetadataPath(agentsDir));
-  return (hasLegacyConfig || hasLegacyLibrary || hasLegacyPackages) && !hasStore;
+  return hasLegacyConfig || hasLegacyLibrary || hasLegacyPackages;
 }
 
 async function writeJson(pathValue: string, value: unknown) {

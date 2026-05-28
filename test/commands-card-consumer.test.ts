@@ -5,7 +5,7 @@ import { afterEach, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { cleanupTempRoots, runAgentsCli, scaffoldCliFixture } from "./helpers";
+import { cleanupTempRoots, envFor, publishCardWithSkills, runAgentsCli, scaffoldCliFixture } from "./helpers";
 
 const tempRoots: string[] = [];
 
@@ -13,29 +13,8 @@ afterEach(async () => {
   await cleanupTempRoots(tempRoots);
 });
 
-function envFor(fixture: Awaited<ReturnType<typeof scaffoldCliFixture>>) {
-  return {
-    AGENTS_REPO_ROOT: fixture.repoRoot,
-    AGENTS_HOME_DIR: fixture.homeDir,
-    AGENTS_DIR: fixture.agentsDir,
-  };
-}
-
 async function publishCard(fixture: Awaited<ReturnType<typeof scaffoldCliFixture>>, name = "@me/backend", version = "1.0.0") {
-  await runAgentsCli(["card", "new", name, "--no-git"], envFor(fixture));
-  const match = name.match(/^(@[^/]+)\/(.+)$/);
-  if (!match) {
-    throw new Error(`Invalid scoped card fixture name: ${name}`);
-  }
-  const scope = match[1]!;
-  const cardName = match[2]!;
-  const manifestPath = join(fixture.agentsDir, "bgng", "sources", scope, cardName, "card.json");
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-  manifest.version = version;
-  manifest.skills = { include: ["alpha"] };
-  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-  const result = await runAgentsCli(["card", "publish", name], envFor(fixture));
-  expect(result.exitCode).toBe(0);
+  await publishCardWithSkills(fixture, { name, version, skills: ["alpha"] });
 }
 
 test("card apply replaces project cards and writes a lockfile", async () => {

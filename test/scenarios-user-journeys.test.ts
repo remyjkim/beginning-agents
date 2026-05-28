@@ -230,7 +230,7 @@ describe("user journeys", () => {
     expect(existsSync(join(projectDir, ".claude", "skills", "parallel-web-extract"))).toBe(false);
   });
 
-  test("invalid project config references are ignored by write and surfaced by doctor", async () => {
+  test("invalid project skill references fail write and are surfaced by doctor", async () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
     const projectDir = join(fixture.root, "project");
@@ -259,7 +259,8 @@ describe("user journeys", () => {
     };
 
     const writeResult = await runAgentsCli(["write", "--dry-run"], env, projectDir);
-    expect(writeResult.exitCode).toBe(0);
+    expect(writeResult.exitCode).not.toBe(0);
+    expect(writeResult.stderr).toContain("deleted-skill");
 
     const doctorResult = await runAgentsCli(["doctor"], env, projectDir);
     expect(doctorResult.exitCode).toBe(0);

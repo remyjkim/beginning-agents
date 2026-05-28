@@ -6,6 +6,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { cleanupTempRoots, createTempRoot } from "./helpers";
+import { ensureStoreInitialized } from "../cli/core/card-store";
 import { detectLegacyLayout, migrateStore } from "../cli/core/migration";
 
 const tempRoots: string[] = [];
@@ -92,4 +93,23 @@ test("migrateStore re-run after success reports no migration", async () => {
 
   expect(result.steps).toContain("no legacy layout detected");
   expect(JSON.parse(readFileSync(join(fixture.agentsDir, "bgng", "store.json"), "utf8")).schemaVersion).toBe(1);
+});
+
+test("detectLegacyLayout returns true even after the cards-era store is initialized", async () => {
+  const fixture = await scaffoldPreCardsFixture();
+
+  await ensureStoreInitialized(fixture.agentsDir);
+
+  expect(detectLegacyLayout(fixture.agentsDir)).toBe(true);
+});
+
+test("migrateStore moves forward legacy data even when the cards-era store was preemptively initialized", async () => {
+  const fixture = await scaffoldPreCardsFixture();
+  await ensureStoreInitialized(fixture.agentsDir);
+
+  const result = await migrateStore({ agentsDir: fixture.agentsDir });
+
+  expect(result.steps).not.toContain("no legacy layout detected");
+  expect(existsSync(join(fixture.agentsDir, "bgng", "mcp-servers", "context7.json"))).toBe(true);
+  expect(detectLegacyLayout(fixture.agentsDir)).toBe(false);
 });

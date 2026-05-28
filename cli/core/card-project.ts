@@ -33,6 +33,8 @@ export async function resolveProjectCards(agentsDir: string, specs: string[]): P
       path: card.dir,
       integrity: card.integrity,
       manifest: card.manifest,
+      skills: card.manifest.skills?.include ?? [],
+      registry: null as null,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }

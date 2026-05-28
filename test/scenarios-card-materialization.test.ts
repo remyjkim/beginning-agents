@@ -2,10 +2,10 @@
 // ABOUTME: Protects the end-to-end card consumption path beyond lockfile mutation.
 
 import { afterEach, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
+import { existsSync, readlinkSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { cleanupTempRoots, runAgentsCli, scaffoldCliFixture } from "./helpers";
+import { cleanupTempRoots, envFor, publishCardWithSkills, runAgentsCli, scaffoldCliFixture } from "./helpers";
 
 const tempRoots: string[] = [];
 
@@ -13,31 +13,21 @@ afterEach(async () => {
   await cleanupTempRoots(tempRoots);
 });
 
-function envFor(fixture: Awaited<ReturnType<typeof scaffoldCliFixture>>) {
-  return {
-    AGENTS_REPO_ROOT: fixture.repoRoot,
-    AGENTS_HOME_DIR: fixture.homeDir,
-    AGENTS_DIR: fixture.agentsDir,
-  };
-}
-
 test("project write materializes skills and servers introduced by cards", async () => {
   const fixture = await scaffoldCliFixture();
   tempRoots.push(fixture.root);
-  expect((await runAgentsCli(["card", "new", "@me/backend", "--no-git"], envFor(fixture))).exitCode).toBe(0);
-  const manifestPath = join(fixture.agentsDir, "bgng", "sources", "@me", "backend", "card.json");
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-  manifest.skills = { include: ["alpha"] };
-  manifest.servers = {
-    "card-server": {
-      description: "From card",
-      transport: "stdio",
-      command: "card-run",
-      optional: false,
+  const versionDir = await publishCardWithSkills(fixture, {
+    name: "@me/backend",
+    skills: ["alpha"],
+    servers: {
+      "card-server": {
+        description: "From card",
+        transport: "stdio",
+        command: "card-run",
+        optional: false,
+      },
     },
-  };
-  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-  expect((await runAgentsCli(["card", "publish", "@me/backend"], envFor(fixture))).exitCode).toBe(0);
+  });
 
   const projectDir = join(fixture.root, "project");
   const configPath = join(projectDir, ".agents", "bgng", "config.json");
@@ -48,6 +38,7 @@ test("project write materializes skills and servers introduced by cards", async 
 
   expect(write.exitCode).toBe(0);
   expect(existsSync(join(projectDir, ".claude", "skills", "alpha"))).toBe(true);
+  expect(readlinkSync(join(projectDir, ".claude", "skills", "alpha"))).toBe(join(versionDir, "skills", "alpha"));
   const settings = JSON.parse(await readFile(join(projectDir, ".claude", "settings.json"), "utf8"));
   expect(settings.mcpServers["card-server"].command).toBe("card-run");
 });
