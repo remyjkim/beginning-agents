@@ -3,7 +3,8 @@
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { loadCardLock } from "./card-lock";
+import { loadCardLock, type CardLockEntry } from "./card-lock";
+import { resolveSkillSource } from "./card-skill-resolver";
 import { mergeCardManifestsIntoProjectConfig, resolveProjectCards } from "./card-project";
 import { loadConfig } from "./config";
 import { buildActiveServers, mergeClaudeSettingsText, mergeCodexTomlText, renderCursorConfig } from "./mcp";
@@ -13,7 +14,6 @@ import { loadRegistry } from "./registry";
 import { loadMcpLibrary } from "./mcp-library";
 import {
   buildSkillInventory,
-  findAvailableSkill,
   findStaleSymlinks,
   listCuratedSkills,
   listRepoSkills,
@@ -392,25 +392,39 @@ async function detectStaleSkillSymlinks(
   agentsDir: string,
   toolRoot: string,
   skillOverrides?: { include?: string[]; exclude?: string[] },
+  lockedCards: CardLockEntry[] = [],
 ) {
   const toolPaths = resolveToolPaths(toolRoot);
   const curated = await listCuratedSkills(agentsDir);
   const scopes = await listSkillsByScope(repoRoot);
   const excluded = new Set(skillOverrides?.exclude ?? []);
-  const includedSkills = await Promise.all(
+  const resolvedSources = await Promise.all(
     (skillOverrides?.include ?? [])
       .filter((name) => !excluded.has(name))
-      .map(async (name) => await findAvailableSkill(repoRoot, agentsDir, name)),
+      .map(async (name) => ({
+        name,
+        source: await resolveSkillSource(name, lockedCards, repoRoot, agentsDir),
+      })),
   );
   const desiredClaude = new Set([
     ...curated.map((entry) => entry.name).filter((name) => !excluded.has(name)),
     ...scopes.claudeOnly.map((skill) => skill.name).filter((name) => !excluded.has(name)),
-    ...includedSkills.filter((skill) => skill && (skill.scope === "shared" || skill.scope === "claude-only")).map((skill) => skill!.name),
+    ...resolvedSources
+      .filter((entry) =>
+        entry.source.layer === "card" ||
+        (entry.source.layer === "user-default" && (entry.source.scope === "shared" || entry.source.scope === "claude-only"))
+      )
+      .map((entry) => entry.name),
   ]);
   const desiredCodex = new Set([
     ...curated.map((entry) => entry.name).filter((name) => !excluded.has(name)),
     ...scopes.codexOnly.map((skill) => skill.name).filter((name) => !excluded.has(name)),
-    ...includedSkills.filter((skill) => skill && (skill.scope === "shared" || skill.scope === "codex-only")).map((skill) => skill!.name),
+    ...resolvedSources
+      .filter((entry) =>
+        entry.source.layer === "card" ||
+        (entry.source.layer === "user-default" && (entry.source.scope === "shared" || entry.source.scope === "codex-only"))
+      )
+      .map((entry) => entry.name),
   ]);
 
   return [
@@ -553,7 +567,10 @@ export async function buildDoctorReportWithProject(
   }
   const merged = mergeProjectConfig(repoConfig, registry, projectWithCards);
   const activeServers = buildActiveServers(registry, repoConfig);
-  const availableSkillNames = new Set(skillInventory.map((skill) => skill.name));
+  const availableSkillNames = new Set([
+    ...skillInventory.map((skill) => skill.name),
+    ...cardLocks.flatMap((card) => card.skills),
+  ]);
   const issues: string[] = [];
 
   for (const [name, override] of Object.entries(project.servers ?? {})) {
@@ -590,7 +607,7 @@ export async function buildDoctorReportWithProject(
   const generatedDir = join(projectRoot, ".agents", "bgng", "generated");
   const scopedReport = {
     ...report,
-    staleSkillSymlinks: await detectStaleSkillSymlinks(repoRoot, agentsDir, projectRoot, merged.skills),
+    staleSkillSymlinks: await detectStaleSkillSymlinks(repoRoot, agentsDir, projectRoot, merged.skills, cardLocks),
     mcpDrift: await detectMcpDrift(
       merged.config,
       buildActiveServers(merged.registry, merged.config),

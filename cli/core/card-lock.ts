@@ -13,6 +13,8 @@ export interface CardLockEntry {
   path: string;
   integrity: string;
   manifest: CardManifest;
+  skills: string[];
+  registry: null;
 }
 
 export interface CardLockfile {
@@ -29,11 +31,25 @@ export async function loadCardLock(projectRoot: string): Promise<CardLockfile | 
   if (!existsSync(path)) {
     return null;
   }
-  const parsed = JSON.parse(await readFile(path, "utf8")) as CardLockfile;
+  const parsed = JSON.parse(await readFile(path, "utf8")) as Partial<CardLockfile> & {
+    cards?: Array<Partial<CardLockEntry> & {
+      name: string;
+      requested: string;
+      version: string;
+      path: string;
+      integrity: string;
+      manifest: CardManifest;
+    }>;
+  };
   if (parsed.lockfileVersion !== 1 || !Array.isArray(parsed.cards)) {
     throw new Error(`Invalid card lockfile: ${path}`);
   }
-  return parsed;
+  const cards: CardLockEntry[] = parsed.cards.map((entry) => ({
+    ...entry,
+    skills: entry.skills ?? entry.manifest.skills?.include ?? [],
+    registry: null,
+  }));
+  return { lockfileVersion: 1, cards };
 }
 
 export function writeCardLock(projectRoot: string, cards: CardLockEntry[]) {

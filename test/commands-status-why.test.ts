@@ -4,7 +4,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { cleanupTempRoots, runAgentsCli, scaffoldCliFixture } from "./helpers";
+import { cleanupTempRoots, envFor, publishCardWithSkills, runAgentsCli, scaffoldCliFixture } from "./helpers";
 
 const tempRoots: string[] = [];
 
@@ -12,29 +12,19 @@ afterEach(async () => {
   await cleanupTempRoots(tempRoots);
 });
 
-function envFor(fixture: Awaited<ReturnType<typeof scaffoldCliFixture>>) {
-  return {
-    AGENTS_REPO_ROOT: fixture.repoRoot,
-    AGENTS_HOME_DIR: fixture.homeDir,
-    AGENTS_DIR: fixture.agentsDir,
-  };
-}
-
 async function publishDiagnosticCard(fixture: Awaited<ReturnType<typeof scaffoldCliFixture>>) {
-  expect((await runAgentsCli(["card", "new", "@me/backend", "--no-git"], envFor(fixture))).exitCode).toBe(0);
-  const manifestPath = join(fixture.agentsDir, "bgng", "sources", "@me", "backend", "card.json");
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-  manifest.skills = { include: ["alpha"] };
-  manifest.servers = {
-    "card-server": {
-      description: "From card",
-      transport: "stdio",
-      command: "card-run",
-      optional: false,
+  await publishCardWithSkills(fixture, {
+    name: "@me/backend",
+    skills: ["alpha"],
+    servers: {
+      "card-server": {
+        description: "From card",
+        transport: "stdio",
+        command: "card-run",
+        optional: false,
+      },
     },
-  };
-  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-  expect((await runAgentsCli(["card", "publish", "@me/backend"], envFor(fixture))).exitCode).toBe(0);
+  });
 }
 
 test("status --why answers typed and unique bare queries", async () => {

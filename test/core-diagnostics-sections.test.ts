@@ -30,6 +30,8 @@ test("diagnostics sections compose cards, store, and write-record state", async 
       path: join(fixture.agentsDir, "bgng", "cards", "@me", "backend", "1.0.0"),
       integrity: "sha256-test",
       manifest: { name: "@me/backend", version: "1.0.0", skills: { include: ["alpha"] } },
+      skills: ["alpha"],
+      registry: null,
     },
   ]);
   saveWriteRecord(join(projectDir, ".agents", "bgng", "write-record.json"), {
