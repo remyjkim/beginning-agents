@@ -80,6 +80,39 @@ describe("bgng export sessions", () => {
     expect(tarOut).toContain(`claude/session.jsonl`);
   });
 
+  test("successful archive prints upload-ready guidance that warns against manual recompression", async () => {
+    const { fixture, env } = await scaffoldExportFixture();
+    const outPath = join(fixture.root, "out.tar");
+
+    const result = await runAgentsCli(["export", "sessions", "--out", outPath], env, fixture.repoRoot);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toMatch(/upload[- ]ready/i);
+    expect(result.stdout).toMatch(/do not.*(recompress|repackage|finder)/i);
+  });
+
+  test("--gzip writes a gzipped archive at a .tar.gz default path", async () => {
+    const { fixture, env } = await scaffoldExportFixture();
+
+    const result = await runAgentsCli(["export", "sessions", "--gzip"], env, fixture.repoRoot);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Archived");
+
+    const match = result.stdout.match(/to: (.+\.tar\.gz)/);
+    expect(match).not.toBeNull();
+    const archivePath = match?.[1];
+    expect(archivePath).toBeDefined();
+    if (!archivePath) throw new Error("expected .tar.gz path capture");
+    expect(existsSync(archivePath)).toBe(true);
+
+    // tar -tzf must succeed and list the member
+    const tarProc = Bun.spawn(["tar", "-tzf", archivePath], { stdout: "pipe", stderr: "pipe" });
+    const tarOut = await new Response(tarProc.stdout).text();
+    expect(await tarProc.exited).toBe(0);
+    expect(tarOut).toContain("claude/session.jsonl");
+  });
+
   test("default output path writes archive and stdout reports path ending in .tar", async () => {
     const { fixture, env } = await scaffoldExportFixture();
 
@@ -93,7 +126,11 @@ describe("bgng export sessions", () => {
     // extract path from "Archived N file(s) to: <path>"
     const match = result.stdout.match(/to: (.+\.tar)/);
     expect(match).not.toBeNull();
-    const tarPath = match![1].trim();
+    const tarPath = match?.[1];
+    expect(tarPath).toBeDefined();
+    if (!tarPath) {
+      throw new Error("expected archive path capture");
+    }
     expect(existsSync(tarPath)).toBe(true);
   });
 });

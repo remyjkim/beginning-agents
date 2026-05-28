@@ -2,12 +2,12 @@
 // ABOUTME: Covers output dir creation, tar content correctness, empty-input error, and source prefixes.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, mkdir, rm, writeFile, readdir } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile, readdir, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { SessionFile } from "../cli/core/export/session-discovery";
-import { makeTimestamp, archiveSessions } from "../cli/core/export/archiver";
+import { makeTimestamp, archiveSessions, validateArchiveMembers } from "../cli/core/export/archiver";
 
 const tempRoots: string[] = [];
 
@@ -64,6 +64,65 @@ describe("makeTimestamp", () => {
 
     expect(parsed.getTime()).toBeGreaterThanOrEqual(before.getTime() - 1000);
     expect(parsed.getTime()).toBeLessThanOrEqual(after.getTime() + 1000);
+  });
+});
+
+describe("validateArchiveMembers", () => {
+  test("accepts members under claude/ and codex/ namespaces", () => {
+    expect(() =>
+      validateArchiveMembers([
+        "./claude/session.jsonl",
+        "./claude/agents/agent-1.jsonl",
+        "./codex/rollout.jsonl",
+      ]),
+    ).not.toThrow();
+  });
+
+  test("ignores directory entries", () => {
+    expect(() =>
+      validateArchiveMembers([
+        "./",
+        "./claude/",
+        "./claude/agents/",
+        "./codex/",
+        "./claude/session.jsonl",
+      ]),
+    ).not.toThrow();
+  });
+
+  test("rejects AppleDouble ._ entries", () => {
+    expect(() => validateArchiveMembers(["./claude/._session.jsonl"])).toThrow(/AppleDouble/);
+  });
+
+  test("rejects entries under __MACOSX/", () => {
+    expect(() => validateArchiveMembers(["./__MACOSX/claude/session.jsonl"])).toThrow(/__MACOSX/);
+  });
+
+  test("rejects .DS_Store entries", () => {
+    expect(() => validateArchiveMembers(["./claude/.DS_Store"])).toThrow(/DS_Store/);
+  });
+
+  test("rejects hidden dotfile entries", () => {
+    expect(() => validateArchiveMembers(["./claude/.hidden.jsonl"])).toThrow(/hidden/i);
+  });
+
+  test("rejects entries outside the claude/ or codex/ namespace", () => {
+    expect(() => validateArchiveMembers(["./elsewhere/session.jsonl"])).toThrow(/namespace|disallowed|forbidden/i);
+  });
+
+  test("throws when file member count does not match expectedCount", () => {
+    expect(() =>
+      validateArchiveMembers(["./claude/a.jsonl", "./claude/b.jsonl"], 5),
+    ).toThrow(/count|expected/i);
+  });
+
+  test("passes when file member count matches expectedCount (excluding dir entries)", () => {
+    expect(() =>
+      validateArchiveMembers(
+        ["./", "./claude/", "./claude/a.jsonl", "./claude/b.jsonl"],
+        2,
+      ),
+    ).not.toThrow();
   });
 });
 
@@ -164,6 +223,58 @@ describe("archiveSessions", () => {
 
     expect(normalised).toContain("claude/myproject-slug/claude-session.jsonl");
     expect(normalised).toContain("codex/sub/codex-session.jsonl");
+  });
+
+  test("rejects archive members outside the claude/ or codex/ namespace", async () => {
+    const root = await createTempRoot("archiver-namespace-");
+    const srcDir = join(root, "src");
+    await mkdir(srcDir, { recursive: true });
+    const srcFile = join(srcDir, "session.jsonl");
+    await writeFile(srcFile, '{"type":"message"}\n');
+
+    const files: SessionFile[] = [
+      {
+        source: "claude",
+        absolutePath: srcFile,
+        archivePath: "elsewhere/session.jsonl",
+      },
+    ];
+
+    const outputPath = join(root, "out", "sessions.tar");
+    await expect(archiveSessions(files, outputPath)).rejects.toThrow(/namespace|disallowed|forbidden/i);
+    expect(existsSync(outputPath)).toBe(false);
+  });
+
+  test("with gzip:true writes a gzipped tar readable by 'tar -tzf'", async () => {
+    const root = await createTempRoot("archiver-gzip-");
+    const srcDir = join(root, "src");
+    await mkdir(srcDir, { recursive: true });
+    const srcFile = join(srcDir, "session.jsonl");
+    await writeFile(srcFile, '{"type":"message"}\n');
+
+    const files: SessionFile[] = [
+      {
+        source: "claude",
+        absolutePath: srcFile,
+        archivePath: "claude/session.jsonl",
+      },
+    ];
+
+    const outputPath = join(root, "out", "sessions.tar.gz");
+    await archiveSessions(files, outputPath, { gzip: true });
+
+    expect(existsSync(outputPath)).toBe(true);
+
+    // Gzip magic number 0x1f 0x8b
+    const buf = await readFile(outputPath);
+    expect(buf[0]).toBe(0x1f);
+    expect(buf[1]).toBe(0x8b);
+
+    // And `tar -tzf` should list the member
+    const proc = Bun.spawn(["tar", "-tzf", outputPath], { stdout: "pipe", stderr: "pipe" });
+    const stdout = await new Response(proc.stdout).text();
+    expect(await proc.exited).toBe(0);
+    expect(stdout).toContain("claude/session.jsonl");
   });
 
   test("staging directory is cleaned up after successful archive", async () => {

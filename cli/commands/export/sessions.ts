@@ -24,6 +24,7 @@ export class ExportSessionsCommand extends BaseCommand {
       ["Preview session files", "bgng export sessions --dry-run"],
       ["Archive to default path", "bgng export sessions"],
       ["Archive to a specific file", "bgng export sessions --out /tmp/my-sessions.tar"],
+      ["Archive as upload-ready .tar.gz", "bgng export sessions --gzip"],
     ],
   });
 
@@ -32,7 +33,11 @@ export class ExportSessionsCommand extends BaseCommand {
   });
 
   out = Option.String("--out", {
-    description: "Override the destination .tar path.",
+    description: "Override the destination archive path.",
+  });
+
+  gzip = Option.Boolean("--gzip", false, {
+    description: "Produce an upload-ready .tar.gz archive instead of an uncompressed .tar.",
   });
 
   async execute() {
@@ -64,13 +69,15 @@ export class ExportSessionsCommand extends BaseCommand {
         return 0;
       }
 
+      const extension = this.gzip ? "tar.gz" : "tar";
       const outputPath = this.out
         ? this.out
-        : join(this.context.cwd, ".agents", "bgng", "session-log-exports", `${makeTimestamp()}.tar`);
+        : join(this.context.cwd, ".agents", "bgng", "session-log-exports", `${makeTimestamp()}.${extension}`);
 
-      await archiveSessions(files, outputPath);
+      await archiveSessions(files, outputPath, { gzip: this.gzip });
 
       this.context.stdout.write(`Archived ${files.length} file(s) to: ${outputPath}\n`);
+      this.context.stdout.write(`Archive is upload-ready — do not recompress with Finder or other tools; upload this file as-is.\n`);
       return 0;
     } catch (error) {
       this.context.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
