@@ -604,7 +604,7 @@ export async function buildDoctorReportWithProject(
     }
   }
 
-  const generatedDir = join(projectRoot, ".agents", "bgng", "generated");
+  const generatedDir = join(projectRoot, ".agents", "drwn", "generated");
   const scopedReport = {
     ...report,
     staleSkillSymlinks: await detectStaleSkillSymlinks(repoRoot, agentsDir, projectRoot, merged.skills, cardLocks),

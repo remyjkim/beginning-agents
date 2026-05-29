@@ -10,7 +10,7 @@ order: 11
 Cards-era `drwn` stores local user-managed inventory under:
 
 ```text
-~/.agents/bgng/
+~/.agents/drwn/
 |-- store.json
 |-- machine.json
 |-- cards/
@@ -49,9 +49,9 @@ Pre-cards versions used several paths:
 
 | Legacy path | Cards-era path |
 |---|---|
-| `~/.agents/bgng/config.json` | `~/.agents/bgng/machine.json` |
-| `~/.agents/library/mcp-servers.json` | `~/.agents/bgng/mcp-servers/<id>.json` |
-| `~/.agents/packages/skills/` | `~/.agents/bgng/skills/` |
+| `~/.agents/drwn/config.json` | `~/.agents/drwn/machine.json` |
+| `~/.agents/library/mcp-servers.json` | `~/.agents/drwn/mcp-servers/<id>.json` |
+| `~/.agents/packages/skills/` | `~/.agents/drwn/skills/` |
 
 Run migration explicitly:
 
@@ -72,7 +72,7 @@ drwn store migrate --yes
 ```
 
 Migration stages the new layout, validates it, archives the old layout, then
-activates `~/.agents/bgng`. Ordinary commands do not silently migrate state;
+activates `~/.agents/drwn`. Ordinary commands do not silently migrate state;
 they warn when a pre-cards layout is detected.
 
 ## Legacy Orphan Cleanup
@@ -93,13 +93,13 @@ paths. User-owned replacements and unrelated paths are preserved.
 Configured projects use their own write record:
 
 ```text
-<project>/.agents/bgng/write-record.json
+<project>/.agents/drwn/write-record.json
 ```
 
 Machine-scope writes use:
 
 ```text
-~/.agents/bgng/global-write-record.json
+~/.agents/drwn/global-write-record.json
 ```
 
 Write records let `drwn` remove old drwn-owned materialized paths while

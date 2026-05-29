@@ -99,7 +99,7 @@ drwn write --dry-run
 drwn write
 ```
 
-When `drwn write` runs inside a project with `.agents/bgng/config.json`, it
+When `drwn write` runs inside a project with `.agents/drwn/config.json`, it
 writes project-local `.claude`, `.codex`, and `.cursor` state instead of
 writing to your home-directory tool config.
 
@@ -114,8 +114,8 @@ drwn write --dry-run
 drwn write
 ```
 
-The project records card refs in `.agents/bgng/config.json` and exact resolved
-versions in `.agents/bgng/card.lock`.
+The project records card refs in `.agents/drwn/config.json` and exact resolved
+versions in `.agents/drwn/card.lock`.
 
 ### Non-interactive mode
 

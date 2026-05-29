@@ -24,7 +24,7 @@ Machine-readable output is available with `--json`.
 
 ### Parallel
 
-Parallel support is CLI+skills-first. Selecting the extension for one project writes semantic config under `<project>/.agents/bgng/config.json`; `drwn write` then derives the four Parallel skills for that project without requiring global skill curation.
+Parallel support is CLI+skills-first. Selecting the extension for one project writes semantic config under `<project>/.agents/drwn/config.json`; `drwn write` then derives the four Parallel skills for that project without requiring global skill curation.
 
 Default shared skills:
 
@@ -70,7 +70,7 @@ drwn extensions add parallel --mcp
 
 ### MarkItDown
 
-MarkItDown support is CLI+skills-first. Selecting the extension for one project writes semantic config under `<project>/.agents/bgng/config.json`; `drwn write` then derives the `markitdown-document-conversion` skill for that project.
+MarkItDown support is CLI+skills-first. Selecting the extension for one project writes semantic config under `<project>/.agents/drwn/config.json`; `drwn write` then derives the `markitdown-document-conversion` skill for that project.
 
 The guarded install path is:
 

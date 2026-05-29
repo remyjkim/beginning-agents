@@ -127,7 +127,7 @@ drwn init --non-interactive
 - `~/.claude`
 - `~/.codex`
 - `~/.cursor`
-- `<project>/.agents/bgng/config.json`
+- `<project>/.agents/drwn/config.json`
 
 The normal write path is conservative:
 
@@ -251,8 +251,8 @@ The core model has five layers:
 
 - packaged harness defaults: config, built-in skills, and built-in MCP definitions
 - local library: package-backed skills and user MCP definitions under `~/.agents/library`
-- user defaults: machine-wide active state under `~/.agents/bgng/config.json`
-- project overlay: current-project overrides under `<project>/.agents/bgng/config.json`
+- user defaults: machine-wide active state under `~/.agents/drwn/config.json`
+- project overlay: current-project overrides under `<project>/.agents/drwn/config.json`
 - downstream state: Claude, Codex, Cursor, and generated MCP config files
 
 `drwn write` resolves the effective harness state, then writes MCP configuration and skill links into downstream local agent tool config and skill directories. Use `--dry-run` to preview writes before mutating files:
@@ -295,7 +295,7 @@ Archives use flat, source-prefixed member paths:
 - `claude/agents/<file>.jsonl` — Claude subagent logs
 - `codex/<file>.jsonl` — Codex rollouts
 
-The default destination is `.agents/bgng/session-log-exports/<timestamp>.tar` (or `.tar.gz` with `--gzip`). Use `--out <path>` to override the destination, or `--dry-run` to preview files without writing.
+The default destination is `.agents/drwn/session-log-exports/<timestamp>.tar` (or `.tar.gz` with `--gzip`). Use `--out <path>` to override the destination, or `--dry-run` to preview files without writing.
 
 ### Upload-ready archives
 
@@ -307,7 +307,7 @@ The archiver enforces explicit cleanliness guarantees:
 - every archive is validated after write — entries outside the `claude/`/`codex/` namespace, AppleDouble entries, `__MACOSX/`, `.DS_Store`, or other hidden dotfiles cause the command to fail and the polluted archive to be removed
 - archive member count must match the discovered input count
 
-**Do not manually recompress archives** (e.g. by Finder-zipping `.agents/bgng/session-log-exports/`). Manual repackaging bypasses these guarantees and can introduce AppleDouble sidecars that break downstream analyzers. Upload the file DRWN produces as-is.
+**Do not manually recompress archives** (e.g. by Finder-zipping `.agents/drwn/session-log-exports/`). Manual repackaging bypasses these guarantees and can introduce AppleDouble sidecars that break downstream analyzers. Upload the file DRWN produces as-is.
 
 Missing source roots like `~/.claude/projects/` or `~/.codex/sessions/` are skipped silently and do not produce an error.
 
@@ -315,7 +315,7 @@ Missing source roots like `~/.claude/projects/` or `~/.codex/sessions/` are skip
 
 MCP servers are defined in [registry/mcp-servers.json](./registry/mcp-servers.json). Target config and optional toggles live in [registry/config.json](./registry/config.json).
 
-User-registered MCP servers live in `~/.agents/library/mcp-servers.json`. Machine-wide active MCP defaults live in `~/.agents/bgng/config.json` under `defaults.mcpServers`.
+User-registered MCP servers live in `~/.agents/library/mcp-servers.json`. Machine-wide active MCP defaults live in `~/.agents/drwn/config.json` under `defaults.mcpServers`.
 
 Inspect active MCP state:
 
@@ -418,7 +418,7 @@ Current extensions:
 
 ### Parallel
 
-Parallel support is CLI+skills-first. Selecting the extension for one project writes semantic config under `<project>/.agents/bgng/config.json`; `drwn write` then derives the four Parallel skills for that project without requiring global skill curation.
+Parallel support is CLI+skills-first. Selecting the extension for one project writes semantic config under `<project>/.agents/drwn/config.json`; `drwn write` then derives the four Parallel skills for that project without requiring global skill curation.
 
 Preview setup:
 
@@ -442,7 +442,7 @@ This does not install or authenticate `parallel-cli`. `drwn extensions status pa
 
 ### MarkItDown
 
-MarkItDown support is CLI+skills-first. Selecting the extension for one project writes semantic config under `<project>/.agents/bgng/config.json`; `drwn write` then derives the `markitdown-document-conversion` skill for that project.
+MarkItDown support is CLI+skills-first. Selecting the extension for one project writes semantic config under `<project>/.agents/drwn/config.json`; `drwn write` then derives the `markitdown-document-conversion` skill for that project.
 
 Preview setup:
 
@@ -519,7 +519,7 @@ drwn init
 This creates:
 
 ```text
-<project>/.agents/bgng/config.json
+<project>/.agents/drwn/config.json
 ```
 
 Project config can:

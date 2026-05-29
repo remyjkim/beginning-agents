@@ -127,7 +127,7 @@ describe("drwn skills mutate", () => {
     tempRoots.push(fixture.root);
     await addParallelSkills(fixture.repoRoot);
     const projectDir = join(fixture.root, "project");
-    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    const projectConfigPath = join(projectDir, ".agents", "drwn", "config.json");
     await mkdir(dirname(projectConfigPath), { recursive: true });
     await writeFile(
       projectConfigPath,

@@ -31,7 +31,7 @@ export class CardStatusCommand extends BaseCommand {
 
   async execute() {
     if (!this.context.projectConfigPath) {
-      throw new Error("Run this command inside a project with .agents/bgng/config.json.");
+      throw new Error("Run this command inside a project with .agents/drwn/config.json.");
     }
     if (this.explain) {
       this.context.stdout.write(

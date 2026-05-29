@@ -212,7 +212,7 @@ export async function syncRepository(options: SyncOptions = {}): Promise<SyncRes
     ...normalized,
     toolRoot: scopeRoot,
     writeScope: projectRoot ? "project" : "machine",
-    generatedDir: projectRoot ? join(projectRoot, ".agents", "bgng", "generated") : resolveStoreGeneratedDir(normalized.agentsDir),
+    generatedDir: projectRoot ? join(projectRoot, ".agents", "drwn", "generated") : resolveStoreGeneratedDir(normalized.agentsDir),
   };
   const previousRecord = loadWriteRecord(recordPath);
   let lockedCards: CardLockEntry[] = [];

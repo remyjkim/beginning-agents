@@ -20,7 +20,7 @@ In the cards-era store, user-registered MCP servers live as one JSON file per
 server:
 
 ```text
-~/.agents/bgng/mcp-servers/<server-id>.json
+~/.agents/drwn/mcp-servers/<server-id>.json
 ```
 
 Add a user MCP server:
@@ -29,7 +29,7 @@ Add a user MCP server:
 drwn library add mcp my-server.json --as my-server
 ```
 
-Machine-wide active MCP defaults live in `~/.agents/bgng/machine.json` under
+Machine-wide active MCP defaults live in `~/.agents/drwn/machine.json` under
 `defaults.mcpServers`.
 
 Pre-cards installs used `~/.agents/library/mcp-servers.json`. `drwn store

@@ -3,7 +3,7 @@
 
 import { createHash } from "node:crypto";
 
-export interface BgngMetaBlock {
+export interface DrwnMetaBlock {
   version: 1;
   managedKeys?: string[];
   fieldHashes?: Record<string, string>;
@@ -32,15 +32,15 @@ export function detectManagedFieldDrift(
   return fields.filter((field) => recordedHashes[field] && canonicalJsonHash(current[field]) !== recordedHashes[field]);
 }
 
-export function readBgngMetaBlock(parsed: Record<string, unknown>): BgngMetaBlock | null {
-  const meta = parsed._bgng;
+export function readDrwnMetaBlock(parsed: Record<string, unknown>): DrwnMetaBlock | null {
+  const meta = parsed._drwn;
   if (!meta || typeof meta !== "object") return null;
-  const candidate = meta as Partial<BgngMetaBlock>;
+  const candidate = meta as Partial<DrwnMetaBlock>;
   if (candidate.version !== 1) return null;
-  return candidate as BgngMetaBlock;
+  return candidate as DrwnMetaBlock;
 }
 
-export function buildBgngMetaBlock(fields: string[], values: Record<string, unknown>): BgngMetaBlock {
+export function buildDrwnMetaBlock(fields: string[], values: Record<string, unknown>): DrwnMetaBlock {
   return {
     version: 1,
     managedKeys: fields,

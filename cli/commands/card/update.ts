@@ -13,7 +13,7 @@ export class CardUpdateCommand extends BaseCommand {
     category: "Cards",
     description: "Refresh the current project's card.lock from config cards.",
     details: `
-      Re-resolves every ref in .agents/bgng/config.json and writes a fresh
+      Re-resolves every ref in .agents/drwn/config.json and writes a fresh
       card.lock. Use this after publishing newer local versions that satisfy
       the configured ranges.
     `,

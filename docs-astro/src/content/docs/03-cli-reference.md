@@ -24,7 +24,7 @@ order: 3
 |---------|-------------|
 | `drwn apply <refs...>` | Alias for `drwn card apply` |
 | `drwn update` | Alias for `drwn card update` |
-| `drwn card new <name>` | Create an editable card source under `~/.agents/bgng/sources` |
+| `drwn card new <name>` | Create an editable card source under `~/.agents/drwn/sources` |
 | `drwn card publish <name>` | Publish a card source into the immutable local store |
 | `drwn card show <ref>` | Show one resolved card version |
 | `drwn card list` | List published cards in the local store |
@@ -44,7 +44,7 @@ order: 3
 | Command | Description |
 |---------|-------------|
 | `drwn store status` | Show cards-era store status |
-| `drwn store migrate` | Migrate the pre-cards layout to `~/.agents/bgng` |
+| `drwn store migrate` | Migrate the pre-cards layout to `~/.agents/drwn` |
 
 ## Add Commands
 

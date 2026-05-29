@@ -32,7 +32,7 @@ test("status --why answers typed and unique bare queries", async () => {
   tempRoots.push(fixture.root);
   await publishDiagnosticCard(fixture);
   const projectDir = join(fixture.root, "project");
-  const configPath = join(projectDir, ".agents", "bgng", "config.json");
+  const configPath = join(projectDir, ".agents", "drwn", "config.json");
   await mkdir(dirname(configPath), { recursive: true });
   await writeFile(configPath, JSON.stringify({ version: 1, cards: ["@me/backend@^1.0.0"] }, null, 2));
   expect((await runAgentsCli(["card", "update"], envFor(fixture), projectDir)).exitCode).toBe(0);
@@ -50,7 +50,7 @@ test("status --why bare query fails when ambiguous and --explain includes proven
   const fixture = await scaffoldCliFixture();
   tempRoots.push(fixture.root);
   const projectDir = join(fixture.root, "project");
-  const configPath = join(projectDir, ".agents", "bgng", "config.json");
+  const configPath = join(projectDir, ".agents", "drwn", "config.json");
   await mkdir(dirname(configPath), { recursive: true });
   await writeFile(
     configPath,

@@ -14,7 +14,7 @@ export class StoreMigrateCommand extends BaseCommand {
     description: "Migrate the pre-cards layout to the cards-era store.",
     details: `
       Builds a staging store, validates it, archives the old layout, then
-      activates the new ~/.agents/bgng store. The migration is explicit and
+      activates the new ~/.agents/drwn store. The migration is explicit and
       recoverable; ordinary drwn commands only warn when a legacy layout exists.
     `,
     examples: [

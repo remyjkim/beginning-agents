@@ -62,8 +62,8 @@ describe("drwn status", () => {
     });
     const config = JSON.parse(await readFile(join(fixture.repoRoot, "registry", "config.json"), "utf8"));
     config.defaults = { skills: ["alpha"], mcpServers: ["context7"] };
-    await mkdir(join(fixture.agentsDir, "bgng"), { recursive: true });
-    await writeFile(join(fixture.agentsDir, "bgng", "config.json"), JSON.stringify(config, null, 2));
+    await mkdir(join(fixture.agentsDir, "drwn"), { recursive: true });
+    await writeFile(join(fixture.agentsDir, "drwn", "config.json"), JSON.stringify(config, null, 2));
 
     const result = await runAgentsCli(["status", "--json"], {
       AGENTS_REPO_ROOT: fixture.repoRoot,
@@ -86,7 +86,7 @@ describe("drwn status", () => {
     const fixture = await scaffoldCliFixture({ curatedSkillNames: ["alpha"] });
     tempRoots.push(fixture.root);
     const projectDir = join(fixture.root, "project");
-    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    const projectConfigPath = join(projectDir, ".agents", "drwn", "config.json");
     await mkdir(dirname(projectConfigPath), { recursive: true });
     await writeFile(projectConfigPath, JSON.stringify({ version: 1, skills: { include: ["beta"], exclude: ["alpha"] } }, null, 2));
 
@@ -105,7 +105,7 @@ describe("drwn status", () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
     const projectDir = join(fixture.root, "project");
-    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    const projectConfigPath = join(projectDir, ".agents", "drwn", "config.json");
     await mkdir(dirname(projectConfigPath), { recursive: true });
     await writeFile(
       projectConfigPath,
@@ -127,7 +127,7 @@ describe("drwn status", () => {
     const fixture = await scaffoldCliFixture({ curatedSkillNames: ["alpha"] });
     tempRoots.push(fixture.root);
     const projectDir = join(fixture.root, "project");
-    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    const projectConfigPath = join(projectDir, ".agents", "drwn", "config.json");
     await mkdir(dirname(projectConfigPath), { recursive: true });
     await writeFile(projectConfigPath, JSON.stringify({ version: 1, targets: { codex: { enabled: false } } }, null, 2));
 

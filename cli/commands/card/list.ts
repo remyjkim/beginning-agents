@@ -13,7 +13,7 @@ export class CardListCommand extends BaseCommand {
     category: "Cards",
     description: "List published cards in the local store.",
     details: `
-      Lists cards under ~/.agents/bgng/cards and their published versions.
+      Lists cards under ~/.agents/drwn/cards and their published versions.
       Use --json when automation needs stable structured output.
     `,
     examples: [["List cards", "drwn card list"]],

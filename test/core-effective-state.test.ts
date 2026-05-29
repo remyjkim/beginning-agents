@@ -25,12 +25,12 @@ test("project write does not include machine default skills", async () => {
   const fixture = await scaffoldCliFixture();
   tempRoots.push(fixture.root);
   expect((await runAgentsCli(["card", "new", "@me/backend", "--no-git"], envFor(fixture))).exitCode).toBe(0);
-  const machinePath = join(fixture.agentsDir, "bgng", "machine.json");
+  const machinePath = join(fixture.agentsDir, "drwn", "machine.json");
   const machine = JSON.parse(await readFile(machinePath, "utf8"));
   machine.defaults = { skills: ["beta"] };
   await writeFile(machinePath, `${JSON.stringify(machine, null, 2)}\n`);
   const projectDir = join(fixture.root, "project");
-  const configPath = join(projectDir, ".agents", "bgng", "config.json");
+  const configPath = join(projectDir, ".agents", "drwn", "config.json");
   await mkdir(dirname(configPath), { recursive: true });
   await writeFile(configPath, JSON.stringify({ version: 1, skills: { include: ["alpha"] } }, null, 2));
 

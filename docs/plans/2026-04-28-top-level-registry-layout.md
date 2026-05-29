@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Move packaged darwinian-harness source data from root `config.json` and `mcp-servers.json` into `registry/` while preserving local `.agents/bgng/config.json` semantics.
+**Goal:** Move packaged darwinian-harness source data from root `config.json` and `mcp-servers.json` into `registry/` while preserving local `.agents/drwn/config.json` semantics.
 
-**Architecture:** Centralize packaged registry paths in `cli/core/paths.ts`, then make all loaders, context validation, fixtures, release checks, docs, and package metadata use those helpers or the new literal paths. Keep project overlay paths unchanged under `.agents/bgng/config.json`.
+**Architecture:** Centralize packaged registry paths in `cli/core/paths.ts`, then make all loaders, context validation, fixtures, release checks, docs, and package metadata use those helpers or the new literal paths. Keep project overlay paths unchanged under `.agents/drwn/config.json`.
 
 **Tech Stack:** Bun, TypeScript, Clipanion CLI, Bun test runner, npm package manifest.
 
@@ -138,8 +138,8 @@ mcp-servers.json -> registry/mcp-servers.json
 Do not change references to:
 
 ```text
-~/.agents/bgng/config.json
-<project>/.agents/bgng/config.json
+~/.agents/drwn/config.json
+<project>/.agents/drwn/config.json
 ~/.agents/library/mcp-servers.json
 ```
 

@@ -13,7 +13,7 @@ export class StoreStatusCommand extends BaseCommand {
     category: "Store",
     description: "Show cards-era store status.",
     details: `
-      Reports whether ~/.agents/bgng has been initialized as a cards-era store,
+      Reports whether ~/.agents/drwn has been initialized as a cards-era store,
       its schema version, inventory counts, and whether a pre-cards layout is
       still present.
     `,

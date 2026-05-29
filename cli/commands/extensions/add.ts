@@ -18,7 +18,7 @@ export class ExtensionsAddCommand extends BaseCommand {
     description: "Add an extension to the current project.",
     details: `
       Writes or merges the extension config into
-      <project>/.agents/bgng/config.json without running external setup
+      <project>/.agents/drwn/config.json without running external setup
       commands. Use drwn extensions setup <name> when an extension has CLI
       prerequisites or project initialization work.
 

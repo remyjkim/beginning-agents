@@ -114,7 +114,7 @@ export class ExtensionsSetupCommand extends BaseCommand {
       skipBdInit: this.skipBdInit,
         skipBdSetup: this.skipBdSetup,
       });
-    const projectConfigPath = join(this.context.cwd, ".agents", "bgng", "config.json");
+    const projectConfigPath = join(this.context.cwd, ".agents", "drwn", "config.json");
     const skillChange = this.includeSkill && !existsSync(projectConfigPath)
       ? `create ${projectConfigPath} and configure beads extension with beads-task-tracking`
       : this.includeSkill

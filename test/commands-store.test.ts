@@ -15,10 +15,10 @@ afterEach(async () => {
 
 async function scaffoldPreCardsCliFixture() {
   const fixture = await scaffoldCliFixture();
-  await mkdir(join(fixture.agentsDir, "bgng"), { recursive: true });
+  await mkdir(join(fixture.agentsDir, "drwn"), { recursive: true });
   await mkdir(join(fixture.agentsDir, "library"), { recursive: true });
   await mkdir(join(fixture.agentsDir, "packages", "skills"), { recursive: true });
-  await writeFile(join(fixture.agentsDir, "bgng", "config.json"), JSON.stringify({ version: 1, optional: {}, targets: {}, catalogs: {} }, null, 2));
+  await writeFile(join(fixture.agentsDir, "drwn", "config.json"), JSON.stringify({ version: 1, optional: {}, targets: {}, catalogs: {} }, null, 2));
   await writeFile(join(fixture.agentsDir, "library", "mcp-servers.json"), JSON.stringify({ version: 1, servers: {} }, null, 2));
   return fixture;
 }
@@ -34,8 +34,8 @@ function envFor(fixture: Awaited<ReturnType<typeof scaffoldCliFixture>>) {
 test("store status reports initialized store metadata as json", async () => {
   const fixture = await scaffoldCliFixture();
   tempRoots.push(fixture.root);
-  await mkdir(join(fixture.agentsDir, "bgng"), { recursive: true });
-  await writeFile(join(fixture.agentsDir, "bgng", "store.json"), JSON.stringify({ schemaVersion: 1, initAt: "2026-05-20T00:00:00.000Z" }, null, 2));
+  await mkdir(join(fixture.agentsDir, "drwn"), { recursive: true });
+  await writeFile(join(fixture.agentsDir, "drwn", "store.json"), JSON.stringify({ schemaVersion: 1, initAt: "2026-05-20T00:00:00.000Z" }, null, 2));
 
   const result = await runAgentsCli(["store", "status", "--json"], envFor(fixture));
 
@@ -58,7 +58,7 @@ test("store migrate upgrades legacy layout and keeps warning on stderr", async (
   expect(result.exitCode).toBe(0);
   const parsed = JSON.parse(result.stdout) as { archivedTo: string };
   expect(existsSync(parsed.archivedTo)).toBe(true);
-  expect(existsSync(join(fixture.agentsDir, "bgng", "store.json"))).toBe(true);
+  expect(existsSync(join(fixture.agentsDir, "drwn", "store.json"))).toBe(true);
 
   const after = await runAgentsCli(["store", "status", "--json"], envFor(fixture));
   expect(after.stderr).not.toContain("pre-cards layout detected");

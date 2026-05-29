@@ -17,7 +17,7 @@ export type ManagedPath =
   | { path: string; kind: "generated-symlink"; generatedPath: string };
 
 export function resolveProjectWriteRecordPath(projectRoot: string) {
-  return join(projectRoot, ".agents", "bgng", "write-record.json");
+  return join(projectRoot, ".agents", "drwn", "write-record.json");
 }
 
 export function loadWriteRecord(recordPath: string): WriteRecord | null {

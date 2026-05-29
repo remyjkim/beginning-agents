@@ -1,10 +1,10 @@
-// ABOUTME: Resolves cards-era store paths under ~/.agents/bgng.
+// ABOUTME: Resolves cards-era store paths under ~/.agents/drwn.
 // ABOUTME: Keeps store layout decisions separate from legacy path helpers.
 
 import { join } from "node:path";
 
 export function resolveStoreRoot(agentsDir: string) {
-  return join(agentsDir, "bgng");
+  return join(agentsDir, "drwn");
 }
 
 export function resolveStoreMetadataPath(agentsDir: string) {

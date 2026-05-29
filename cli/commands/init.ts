@@ -19,7 +19,7 @@ export class InitCommand extends BaseCommand {
     category: "General",
     description: "Create per-project configuration. In a TTY this runs guided setup; prompt-free modes write a bare config and warn if .gitignore excludes .agents.",
     details: `
-      Writes <project>/.agents/bgng/config.json.
+      Writes <project>/.agents/drwn/config.json.
 
       In a TTY, runs guided setup that can configure Parallel and Beads project
       options. Outside a TTY, use --non-interactive or --minimal to write the

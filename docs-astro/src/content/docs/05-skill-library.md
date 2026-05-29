@@ -60,10 +60,10 @@ drwn write --skills-only
 
 The distinction matters:
 
-- **Added** — the bundle is available under `~/.agents/bgng/skills` in the cards-era store
+- **Added** — the bundle is available under `~/.agents/drwn/skills` in the cards-era store
 - **Legacy added** — before store migration, bundles may live under `~/.agents/packages/skills`
 - **Curated** — a shared skill is linked into `~/.agents/skills`
 - **Written** — the curated skill is linked into downstream tool directories
 
 `drwn store migrate` copies legacy package-backed bundles into
-`~/.agents/bgng/skills` and preserves the old layout in an archive.
+`~/.agents/drwn/skills` and preserves the old layout in an archive.

@@ -2,7 +2,7 @@
 
 ## Goal
 
-Reduce root-level clutter by moving packaged harness source data out of the repository root while keeping `.agents/bgng/config.json` reserved for local project overlays.
+Reduce root-level clutter by moving packaged harness source data out of the repository root while keeping `.agents/drwn/config.json` reserved for local project overlays.
 
 ## Current Layout Problem
 
@@ -14,7 +14,7 @@ The root currently mixes normal package metadata with darwinian-harness source d
 - README imagery
 - package metadata and lockfiles
 
-That makes `config.json` look like this checkout's local project config, even though the CLI contract already uses `<project>/.agents/bgng/config.json` for project overlays.
+That makes `config.json` look like this checkout's local project config, even though the CLI contract already uses `<project>/.agents/drwn/config.json` for project overlays.
 
 ## Decision
 
@@ -25,8 +25,8 @@ Use `registry/` for the packaged source-of-truth files:
 
 This keeps the local overlay namespace clear:
 
-- `~/.agents/bgng/config.json` remains machine-wide user state.
-- `<project>/.agents/bgng/config.json` remains project overlay state.
+- `~/.agents/drwn/config.json` remains machine-wide user state.
+- `<project>/.agents/drwn/config.json` remains project overlay state.
 - `registry/*.json` becomes the package's built-in harness registry.
 
 ## Scope

@@ -108,8 +108,8 @@ describe("drwn extensions", () => {
     tempRoots.push(fixture.root);
     await addParallelSkills(fixture.repoRoot);
     const projectDir = join(fixture.root, "project");
-    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
-    await mkdir(join(projectDir, ".agents", "bgng"), { recursive: true });
+    const projectConfigPath = join(projectDir, ".agents", "drwn", "config.json");
+    await mkdir(join(projectDir, ".agents", "drwn"), { recursive: true });
     await writeFile(
       projectConfigPath,
       JSON.stringify({ version: 1, extensions: { parallel: { enabled: true, skills: true, mcp: true } } }, null, 2),
@@ -125,7 +125,7 @@ describe("drwn extensions", () => {
       project?: { configPath?: string; extensionConfigured?: boolean; extensionEnabled?: boolean };
       mcpServers: Array<{ name: string; active: boolean }>;
     };
-    expect(parsed.project?.configPath?.endsWith("/project/.agents/bgng/config.json")).toBe(true);
+    expect(parsed.project?.configPath?.endsWith("/project/.agents/drwn/config.json")).toBe(true);
     expect(parsed.project?.extensionConfigured).toBe(true);
     expect(parsed.project?.extensionEnabled).toBe(true);
     expect(parsed.mcpServers.find((server) => server.name === "parallel-search")?.active).toBe(true);
@@ -311,7 +311,7 @@ describe("drwn extensions", () => {
     expect(result.exitCode).toBe(0);
     expect(existsSync(join(fixture.root, ".beads"))).toBe(true);
     expect(await readFile(logPath, "utf8")).toContain("setup codex --check");
-    const projectConfig = JSON.parse(await readFile(join(fixture.root, ".agents", "bgng", "config.json"), "utf8")) as {
+    const projectConfig = JSON.parse(await readFile(join(fixture.root, ".agents", "drwn", "config.json"), "utf8")) as {
       extensions?: { beads?: { enabled?: boolean; targets?: string[]; includeSkill?: boolean } };
       skills?: { include?: string[] };
     };
@@ -328,7 +328,7 @@ describe("drwn extensions", () => {
     const result = await runAgentsCli(["extensions", "setup", "parallel", "--mcp"], cliEnv(fixture), projectDir);
 
     expect(result.exitCode).toBe(0);
-    const projectConfig = JSON.parse(await readFile(join(projectDir, ".agents", "bgng", "config.json"), "utf8")) as {
+    const projectConfig = JSON.parse(await readFile(join(projectDir, ".agents", "drwn", "config.json"), "utf8")) as {
       extensions?: { parallel?: { enabled?: boolean; skills?: boolean; mcp?: boolean } };
       skills?: { include?: string[] };
     };
@@ -348,7 +348,7 @@ describe("drwn extensions", () => {
     const parsed = JSON.parse(result.stdout) as { projectConfigChange?: { extensionName?: string; config?: { skills?: boolean } } };
     expect(parsed.projectConfigChange?.extensionName).toBe("parallel");
     expect(parsed.projectConfigChange?.config?.skills).toBe(false);
-    expect(existsSync(join(projectDir, ".agents", "bgng", "config.json"))).toBe(false);
+    expect(existsSync(join(projectDir, ".agents", "drwn", "config.json"))).toBe(false);
   });
 
   test("setup markitdown dry-run previews uv install without mutation", async () => {
@@ -370,7 +370,7 @@ describe("drwn extensions", () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("uv tool install --python 3.12 markitdown[all]");
     expect(existsSync(logPath)).toBe(false);
-    expect(existsSync(join(projectDir, ".agents", "bgng", "config.json"))).toBe(false);
+    expect(existsSync(join(projectDir, ".agents", "drwn", "config.json"))).toBe(false);
   });
 
   test("setup markitdown skips install when runtime already exists", async () => {
@@ -392,7 +392,7 @@ describe("drwn extensions", () => {
 
     expect(result.exitCode).toBe(0);
     expect(existsSync(logPath)).toBe(false);
-    const config = JSON.parse(await readFile(join(projectDir, ".agents", "bgng", "config.json"), "utf8")) as {
+    const config = JSON.parse(await readFile(join(projectDir, ".agents", "drwn", "config.json"), "utf8")) as {
       extensions?: { markitdown?: unknown };
     };
     expect(config.extensions?.markitdown).toEqual({ enabled: true, skills: true });
@@ -463,7 +463,7 @@ describe("drwn extensions", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("MarkItDown runtime is not available");
-    const config = JSON.parse(await readFile(join(projectDir, ".agents", "bgng", "config.json"), "utf8")) as {
+    const config = JSON.parse(await readFile(join(projectDir, ".agents", "drwn", "config.json"), "utf8")) as {
       extensions?: { markitdown?: unknown };
     };
     expect(config.extensions?.markitdown).toEqual({ enabled: true, skills: true });

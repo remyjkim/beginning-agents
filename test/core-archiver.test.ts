@@ -143,8 +143,8 @@ describe("archiveSessions", () => {
       },
     ];
 
-    // The parent dir .agents/bgng/ does not exist yet
-    const outputPath = join(root, ".agents", "bgng", "sessions.tar");
+    // The parent dir .agents/drwn/ does not exist yet
+    const outputPath = join(root, ".agents", "drwn", "sessions.tar");
     await archiveSessions(files, outputPath);
 
     expect(existsSync(outputPath)).toBe(true);

@@ -23,7 +23,7 @@ export interface CardLockfile {
 }
 
 export function cardLockPath(projectRoot: string) {
-  return join(projectRoot, ".agents", "bgng", "card.lock");
+  return join(projectRoot, ".agents", "drwn", "card.lock");
 }
 
 export async function loadCardLock(projectRoot: string): Promise<CardLockfile | null> {

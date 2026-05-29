@@ -130,7 +130,7 @@ export async function publishCardWithSkills(
     throw new Error(`Use a scoped card name in tests: ${options.name}`);
   }
   const [, scope, cardName] = match;
-  const sourceRoot = join(fixture.agentsDir, "bgng", "sources", scope!, cardName!);
+  const sourceRoot = join(fixture.agentsDir, "drwn", "sources", scope!, cardName!);
   if (!existsSync(join(sourceRoot, "card.json"))) {
     expect((await runAgentsCli(["card", "new", options.name, "--no-git"], envFor(fixture))).exitCode).toBe(0);
   }
@@ -152,7 +152,7 @@ export async function publishCardWithSkills(
 
   const published = await runAgentsCli(["card", "publish", options.name], envFor(fixture));
   expect(published.exitCode).toBe(0);
-  return join(fixture.agentsDir, "bgng", "cards", scope!, cardName!, version);
+  return join(fixture.agentsDir, "drwn", "cards", scope!, cardName!, version);
 }
 
 export async function createInstalledSkillBundle(

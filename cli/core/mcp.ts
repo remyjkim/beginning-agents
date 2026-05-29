@@ -2,7 +2,7 @@
 // ABOUTME: Shared by drwn commands and the legacy sync-mcp compatibility wrapper.
 
 import { parse as parseToml, stringify as stringifyToml } from "smol-toml";
-import { buildBgngMetaBlock, detectManagedFieldDrift, readBgngMetaBlock } from "./managed-fields";
+import { buildDrwnMetaBlock, detectManagedFieldDrift, readDrwnMetaBlock } from "./managed-fields";
 import type { CanonicalConfig, CanonicalRegistry, RegistryServer } from "./types";
 
 export function buildActiveServers(registry: CanonicalRegistry, config: CanonicalConfig) {
@@ -74,24 +74,24 @@ export function renderCursorConfig(servers: Record<string, RegistryServer>) {
 
 export function mergeClaudeSettingsText(currentText: string, servers: Record<string, RegistryServer>, options?: { force?: boolean }) {
   const parsed = JSON.parse(currentText) as Record<string, unknown>;
-  const meta = readBgngMetaBlock(parsed);
+  const meta = readDrwnMetaBlock(parsed);
   const managedKeys = meta?.managedKeys ?? ["mcpServers"];
   const recordedHashes = meta?.fieldHashes ?? {};
   const driftedKeys = options?.force ? [] : detectManagedFieldDrift(parsed, managedKeys, recordedHashes);
   if (driftedKeys.length > 0) {
     throw new Error(
-      `Drift detected in Claude settings managed field(s): ${driftedKeys.join(", ")}. Move your change into .agents/bgng/config.json or rerun drwn write --force to overwrite.`,
+      `Drift detected in Claude settings managed field(s): ${driftedKeys.join(", ")}. Move your change into .agents/drwn/config.json or rerun drwn write --force to overwrite.`,
     );
   }
 
   parsed.mcpServers = Object.fromEntries(
     Object.entries(servers).map(([name, server]) => [name, toJsonServerConfig(server)]),
   );
-  const nextMeta = buildBgngMetaBlock(["mcpServers"], { mcpServers: parsed.mcpServers });
+  const nextMeta = buildDrwnMetaBlock(["mcpServers"], { mcpServers: parsed.mcpServers });
   if (meta && meta.fieldHashes?.mcpServers === nextMeta.fieldHashes?.mcpServers) {
     nextMeta.lastWriteAt = meta.lastWriteAt;
   }
-  parsed._bgng = nextMeta;
+  parsed._drwn = nextMeta;
 
   return `${JSON.stringify(parsed, null, 2)}\n`;
 }

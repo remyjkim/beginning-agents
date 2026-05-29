@@ -14,13 +14,13 @@ and metadata.
 A project records requested cards in:
 
 ```text
-<project>/.agents/bgng/config.json
+<project>/.agents/drwn/config.json
 ```
 
 Exact resolved versions are written to:
 
 ```text
-<project>/.agents/bgng/card.lock
+<project>/.agents/drwn/card.lock
 ```
 
 `drwn write` then materializes the resolved project state into project-local
@@ -38,7 +38,7 @@ drwn card new backend --scope @me --no-git
 Card sources live under:
 
 ```text
-~/.agents/bgng/sources/
+~/.agents/drwn/sources/
 ```
 
 Each source contains `card.json`, `skills/`, and `mcp-servers/`.
@@ -52,7 +52,7 @@ drwn card publish @me/backend
 Published card versions are immutable and live under:
 
 ```text
-~/.agents/bgng/cards/
+~/.agents/drwn/cards/
 ```
 
 ## Inspect Cards

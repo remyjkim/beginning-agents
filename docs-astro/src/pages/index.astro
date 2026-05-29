@@ -51,7 +51,7 @@ const moreDocs = allDocs.filter((d) => !featuredSlugs.has(d.slug));
         <div class="space-y-4">
           <div>
             <div class="text-sm font-semibold text-black/70 mb-1">Published package</div>
-            <Code code={`npm install -g darwinian-harness\nbgng status`} lang="bash" theme="github-dark" />
+            <Code code={`npm install -g darwinian-harness\ndrwn status`} lang="bash" theme="github-dark" />
           </div>
           <div>
             <div class="text-sm font-semibold text-black/70 mb-1">From source</div>
@@ -59,7 +59,7 @@ const moreDocs = allDocs.filter((d) => !featuredSlugs.has(d.slug));
           </div>
           <div>
             <div class="text-sm font-semibold text-black/70 mb-1">Point global install at a checkout</div>
-            <Code code={`export AGENTS_REPO_ROOT=/path/to/darwinian-harness\nbgng status`} lang="bash" theme="github-dark" />
+            <Code code={`export AGENTS_REPO_ROOT=/path/to/darwinian-harness\ndrwn status`} lang="bash" theme="github-dark" />
           </div>
         </div>
       </section>

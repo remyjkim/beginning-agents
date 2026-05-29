@@ -13,7 +13,7 @@ export class CardPublishCommand extends BaseCommand {
     description: "Publish a card source into the immutable local card store.",
     details: `
       Validates card.json and package.json when present, then copies the source
-      into ~/.agents/bgng/cards/<name>/<version>. Existing versions are never
+      into ~/.agents/drwn/cards/<name>/<version>. Existing versions are never
       overwritten.
     `,
     examples: [["Publish a card", "drwn card publish @me/backend"]],

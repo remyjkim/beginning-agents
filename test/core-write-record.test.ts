@@ -33,8 +33,8 @@ test("loadWriteRecord returns null for malformed JSON", async () => {
 test("saveWriteRecord writes the record and leaves no tmp file", async () => {
   const root = await createTempRoot("write-record-");
   tempRoots.push(root);
-  const path = join(root, ".agents", "bgng", "write-record.json");
-  await mkdir(join(root, ".agents", "bgng"), { recursive: true });
+  const path = join(root, ".agents", "drwn", "write-record.json");
+  await mkdir(join(root, ".agents", "drwn"), { recursive: true });
 
   saveWriteRecord(path, {
     writeRecordVersion: 1,

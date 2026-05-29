@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import type { ProjectConfig, ProjectExtensionConfig, ServerOverride } from "./types";
 
 export function projectConfigPath(projectDir: string) {
-  return join(projectDir, ".agents", "bgng", "config.json");
+  return join(projectDir, ".agents", "drwn", "config.json");
 }
 
 export function readProjectConfigForWrite(projectDir: string): ProjectConfig {

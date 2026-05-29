@@ -15,7 +15,7 @@ export class StatusCommand extends BaseCommand {
     details: `
       Prints the resolved repo root, agents directory, home directory, enabled
       targets, and counts for skills and MCP servers. When run inside a project
-      with .agents/bgng/config.json, includes project overlay counts and active
+      with .agents/drwn/config.json, includes project overlay counts and active
       extension overrides.
 
       This command is read-only.

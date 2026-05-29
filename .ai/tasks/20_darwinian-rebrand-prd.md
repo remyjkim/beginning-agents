@@ -4,7 +4,7 @@
 
 ## Introduction
 
-Rename the project from `beginning-harness` to `darwinian-harness` and rename the CLI binary from `bgng` to `drwn` (with alias `bgng-hx` → `drwn-hx`). This is a pure identity rename — no runtime behavior changes, no new features, no schema migrations.
+Rename the project from `beginning-harness` to `darwinian-harness`, rename the CLI binary from `bgng` to `drwn` (with alias `bgng-hx` → `drwn-hx`), and move generated/runtime harness state from `.agents/bgng/` to `.agents/drwn/`.
 
 **Rename mapping (exhaustive):**
 
@@ -17,10 +17,14 @@ Rename the project from `beginning-harness` to `darwinian-harness` and rename th
 | `bgng-hx` | `drwn-hx` |
 | GitHub: `remyjkim/beginning-harness` | **unchanged** — repo name stays as-is |
 
-**What must NOT change (runtime contracts preserved):**
+**What must NOT change:**
 - Env vars: `AGENTS_REPO_ROOT`, `AGENTS_HOME_DIR`, `AGENTS_DIR`
-- Filesystem config paths: `~/.agents/`, `.agents/bgng/config.json`
 - The `.claude/worktrees/` directory — skip entirely, it is an ephemeral artifact
+
+**Runtime path migration:**
+- Filesystem config and store paths use `.agents/drwn/` after the rebrand.
+- User config path: `<project>/.agents/drwn/config.json`
+- Machine/store paths: `~/.agents/drwn/config.json`, `~/.agents/drwn/machine.json`, `~/.agents/drwn/cards/`, `~/.agents/drwn/generated/`, `~/.agents/drwn/session-log-exports/`
 
 ---
 
@@ -179,12 +183,12 @@ Rename the project from `beginning-harness` to `darwinian-harness` and rename th
 
 ## Non-Goals
 
-- **No runtime path migration.** The filesystem paths `~/.agents/`, `.agents/bgng/config.json` and the environment variables `AGENTS_REPO_ROOT`, `AGENTS_HOME_DIR`, `AGENTS_DIR` are **preserved unchanged**. Migrating these is a separate, user-facing breaking change that requires its own plan.
+- **No environment variable rename.** The environment variables `AGENTS_REPO_ROOT`, `AGENTS_HOME_DIR`, `AGENTS_DIR` are preserved unchanged.
 - **No GitHub repository rename.** The GitHub repo stays at `remyjkim/beginning-harness`. All `homepage`, `bugs.url`, and `repository.url` fields in `package.json` continue to point there unchanged.
 - **No Homebrew formula update.** Updating the Homebrew tap formula is a post-publish step, not part of this rename.
 - **No user-facing migration command.** No `drwn store migrate` or similar command is being added here.
 - **No changes to `.claude/worktrees/`.** This directory is an ephemeral git worktree artifact and must be skipped entirely.
-- **No changes to `.ai/`.** All files under `.ai/analyses/`, `.ai/tasks/`, and `.ai/knowledges/` are historical product documents and must be left exactly as-is.
+- **No broad `.ai/` rewrite.** Historical files under `.ai/analyses/` and `.ai/knowledges/` remain unchanged. This PRD is updated to reflect the runtime path decision.
 
 ---
 
@@ -193,7 +197,7 @@ Rename the project from `beginning-harness` to `darwinian-harness` and rename th
 - **Execution order matters.** `package.json` changes should land first because multiple tests and the release script assert against it. Then the CLI runtime (`cli/index.ts`, `cli/context.ts`), then commands/core, then tests (which must be updated to match the new output), then docs.
 - **`bgng-hx` alias.** The secondary bin alias appears only in `package.json:5`. It must become `"drwn-hx"`.
 - **Asset rename.** `docs/assets/the-beginning-harness.png` is referenced in `package.json:25` and `test/package-readiness.test.ts:77`. The physical file should be renamed and both references updated together.
-- **Global find-and-replace risk.** A naive `sed -i 's/bgng/drwn/g'` would corrupt `.agents/bgng/config.json` path strings in core files. Each substitution must be made with awareness of which occurrences are runtime paths (preserve) vs. user-visible strings (update).
+- **Global find-and-replace risk.** A naive `sed -i 's/bgng/drwn/g'` can still corrupt historical documentation and unchanged GitHub repository URLs. Runtime `.agents/bgng/` paths are intentionally updated to `.agents/drwn/`.
 - **Test suite is the source of truth.** Run `bun test` after each user story to catch regressions early rather than fixing all test failures at the end.
 
 ---
@@ -203,7 +207,7 @@ Rename the project from `beginning-harness` to `darwinian-harness` and rename th
 - `bun test` exits 0 with zero failures after all changes.
 - `bun run verify:release` exits 0.
 - Running `drwn --help` prints `drwn` (not `bgng`) in the usage header.
-- `grep -r "beginning-harness\|bgng" --include="*.ts" --include="*.json" cli/ test/ scripts/` returns zero matches (excluding the `.agents/bgng/` path strings in core files and `.claude/worktrees/`). The `.ai/` directory is intentionally excluded from this check.
+- `grep -r "beginning-harness\|bgng" --include="*.ts" --include="*.json" cli/ test/ scripts/` returns zero matches (excluding unchanged GitHub repository URL assertions and historical `.ai/knowledges` assertions). Runtime paths must use `.agents/drwn/`.
 
 ---
 

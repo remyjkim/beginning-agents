@@ -1,5 +1,5 @@
 // ABOUTME: Implements `drwn export sessions` — discovers and archives Claude/Codex session logs.
-// ABOUTME: Writes a .tar archive under .agents/bgng/session-log-exports/ for the current project and its worktrees.
+// ABOUTME: Writes a .tar archive under .agents/drwn/session-log-exports/ for the current project and its worktrees.
 
 import { Option } from "clipanion";
 import { join } from "node:path";
@@ -16,7 +16,7 @@ export class ExportSessionsCommand extends BaseCommand {
     details: `
       Scans ~/.claude/projects and ~/.codex/sessions for session files belonging to
       this project (and any git worktrees). Writes a .tar archive under
-      .agents/bgng/session-log-exports/ by default, or to the path specified by --out.
+      .agents/drwn/session-log-exports/ by default, or to the path specified by --out.
 
       Use --dry-run to preview which files would be archived without writing anything.
     `,
@@ -72,7 +72,7 @@ export class ExportSessionsCommand extends BaseCommand {
       const extension = this.gzip ? "tar.gz" : "tar";
       const outputPath = this.out
         ? this.out
-        : join(this.context.cwd, ".agents", "bgng", "session-log-exports", `${makeTimestamp()}.${extension}`);
+        : join(this.context.cwd, ".agents", "drwn", "session-log-exports", `${makeTimestamp()}.${extension}`);
 
       await archiveSessions(files, outputPath, { gzip: this.gzip });
 

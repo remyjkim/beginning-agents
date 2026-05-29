@@ -17,7 +17,7 @@ drwn init
 This creates:
 
 ```text
-<project>/.agents/bgng/config.json
+<project>/.agents/drwn/config.json
 ```
 
 ## Capabilities
@@ -68,14 +68,14 @@ Discovery walks upward from the current working directory and uses the nearest c
 resolved versions:
 
 ```text
-<project>/.agents/bgng/card.lock
+<project>/.agents/drwn/card.lock
 ```
 
 Track `config.json` and `card.lock` with the project. The write record is
 machine-local materialization state:
 
 ```text
-<project>/.agents/bgng/write-record.json
+<project>/.agents/drwn/write-record.json
 ```
 
 When cards are present, effective state is:
@@ -84,7 +84,7 @@ When cards are present, effective state is:
 built-in defaults + user library + cards in lockfile order + project overlay
 ```
 
-Machine-only defaults from `~/.agents/bgng/machine.json` do not apply inside a
+Machine-only defaults from `~/.agents/drwn/machine.json` do not apply inside a
 configured project.
 
 ## Project-local Materialization
@@ -98,7 +98,7 @@ under the project root:
 <project>/.codex/config.toml
 <project>/.codex/skills/
 <project>/.cursor/mcp.json
-<project>/.agents/bgng/generated/cursor-mcp.json
+<project>/.agents/drwn/generated/cursor-mcp.json
 ```
 
 ## Skill Include / Exclude

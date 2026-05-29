@@ -21,9 +21,9 @@ test("cards bundle skills not in skills/shared/ and write symlinks into the card
     skills: ["polish", "animate", "alpha"],
   });
   const projectDir = join(fixture.root, "project");
-  await mkdir(join(projectDir, ".agents", "bgng"), { recursive: true });
+  await mkdir(join(projectDir, ".agents", "drwn"), { recursive: true });
   await writeFile(
-    join(projectDir, ".agents", "bgng", "config.json"),
+    join(projectDir, ".agents", "drwn", "config.json"),
     JSON.stringify({ version: 1, cards: ["@me/frontend-design@^1.0.0"] }, null, 2),
   );
 
@@ -41,9 +41,9 @@ test("drwn write fails loud when a project skill include is not available from a
   const fixture = await scaffoldCliFixture();
   tempRoots.push(fixture.root);
   const projectDir = join(fixture.root, "project");
-  await mkdir(join(projectDir, ".agents", "bgng"), { recursive: true });
+  await mkdir(join(projectDir, ".agents", "drwn"), { recursive: true });
   await writeFile(
-    join(projectDir, ".agents", "bgng", "config.json"),
+    join(projectDir, ".agents", "drwn", "config.json"),
     JSON.stringify({ version: 1, skills: { include: ["ghost-skill"] } }, null, 2),
   );
 

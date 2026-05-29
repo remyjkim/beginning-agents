@@ -1,16 +1,16 @@
-// ABOUTME: Manages user-owned global drwn config under ~/.agents/bgng.
+// ABOUTME: Manages user-owned global drwn config under ~/.agents/drwn.
 // ABOUTME: Initializes defaults from packaged config while preserving existing compatibility state.
 
 import { existsSync, mkdirSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import { resolveUserBgngDir, resolveUserConfigPath } from "./paths";
+import { resolveUserDrwnDir, resolveUserConfigPath } from "./paths";
 import { resolveMachineConfigPath, resolveStoreMetadataPath } from "./store-paths";
 import { listCuratedSkills } from "./skills";
 import { resolveDefaultMcpNames } from "./defaults";
 import type { CanonicalConfig, CanonicalRegistry, MachineConfig } from "./types";
 
-export { resolveUserBgngDir, resolveUserConfigPath };
+export { resolveUserDrwnDir, resolveUserConfigPath };
 
 export { resolveMachineConfigPath };
 

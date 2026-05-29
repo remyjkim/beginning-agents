@@ -22,7 +22,7 @@ function envFor(fixture: Awaited<ReturnType<typeof scaffoldCliFixture>>) {
 }
 
 async function readUserConfig(fixture: Awaited<ReturnType<typeof scaffoldCliFixture>>) {
-  return JSON.parse(await readFile(join(fixture.agentsDir, "bgng", "config.json"), "utf8")) as {
+  return JSON.parse(await readFile(join(fixture.agentsDir, "drwn", "config.json"), "utf8")) as {
     defaults?: { skills?: string[]; mcpServers?: string[] };
   };
 }

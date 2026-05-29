@@ -97,8 +97,8 @@ export async function migrateStore(options: MigrationOptions): Promise<Migration
   }
 
   const ts = timestamp();
-  const stagingPath = join(options.agentsDir, `bgng.staging-${ts}`);
-  const archivePath = join(options.agentsDir, `bgng.archive-${ts}`);
+  const stagingPath = join(options.agentsDir, `drwn.staging-${ts}`);
+  const archivePath = join(options.agentsDir, `drwn.archive-${ts}`);
   rmSync(stagingPath, { recursive: true, force: true });
   await mkdir(stagingPath, { recursive: true });
 
@@ -134,7 +134,7 @@ export async function migrateStore(options: MigrationOptions): Promise<Migration
 
   await mkdir(archivePath, { recursive: true });
   if (existsSync(resolveStoreRoot(options.agentsDir))) {
-    await rename(resolveStoreRoot(options.agentsDir), join(archivePath, "bgng"));
+    await rename(resolveStoreRoot(options.agentsDir), join(archivePath, "drwn"));
   }
   if (existsSync(resolveLibraryDir(options.agentsDir))) {
     await rename(resolveLibraryDir(options.agentsDir), join(archivePath, "library"));

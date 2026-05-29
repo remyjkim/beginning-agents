@@ -121,11 +121,11 @@ describe("documentation readiness", () => {
     expect(docsAstro).toContain("drwn update");
     expect(docsAstro).toContain("drwn write --force");
     expect(docsAstro).toContain("drwn status --why");
-    expect(docsAstro).toContain("~/.agents/bgng/machine.json");
-    expect(docsAstro).toContain("~/.agents/bgng/skills");
-    expect(docsAstro).toContain("~/.agents/bgng/mcp-servers");
+    expect(docsAstro).toContain("~/.agents/drwn/machine.json");
+    expect(docsAstro).toContain("~/.agents/drwn/skills");
+    expect(docsAstro).toContain("~/.agents/drwn/mcp-servers");
     expect(docsAstro).not.toContain("drwn add extension");
-    expect(docsAstro).not.toContain("Machine-wide active MCP defaults live in `~/.agents/bgng/config.json`");
+    expect(docsAstro).not.toContain("Machine-wide active MCP defaults live in `~/.agents/drwn/config.json`");
     expect(docsAstro).not.toContain("bundle is available under `~/.agents/packages/skills`");
     expect(docsAstro).not.toContain("package-backed skills and user MCP definitions under `~/.agents/library`");
     expect(knowledgeReadme).toContain("Operator Docs");
