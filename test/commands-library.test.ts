@@ -1,4 +1,4 @@
-// ABOUTME: Verifies the user-facing `bgng library` command group.
+// ABOUTME: Verifies the user-facing `drwn library` command group.
 // ABOUTME: Protects the local reusable inventory mental model over lower-level package commands.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -27,7 +27,7 @@ function envFor(fixture: Awaited<ReturnType<typeof scaffoldCliFixture>>) {
   };
 }
 
-describe("bgng library", () => {
+describe("drwn library", () => {
   test("lists local skills and MCP servers", async () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
@@ -85,7 +85,7 @@ describe("bgng library", () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("@acme/skills-sample@1.0.0");
     expect(existsSync(join(fixture.agentsDir, "packages", "skills", "@acme", "skills-sample", "current"))).toBe(true);
-    expect(existsSync(join(fixture.root, ".agents", "bgng", "config.json"))).toBe(false);
+    expect(existsSync(join(fixture.root, ".agents", "drwn", "config.json"))).toBe(false);
   });
 
   test("adds an MCP server file to the local library without activation", async () => {
@@ -112,7 +112,7 @@ describe("bgng library", () => {
       servers?: Record<string, { command?: string }>;
     };
     expect(library.servers?.github?.command).toBe("npx");
-    expect(existsSync(join(fixture.root, ".agents", "bgng", "config.json"))).toBe(false);
+    expect(existsSync(join(fixture.root, ".agents", "drwn", "config.json"))).toBe(false);
   });
 
   test("lists user MCP library entries", async () => {

@@ -1,5 +1,5 @@
-// ABOUTME: Reads and writes bgng materialization records for drift detection and safe cleanup.
-// ABOUTME: Records only bgng-owned paths so cleanup never guesses ownership.
+// ABOUTME: Reads and writes drwn materialization records for drift detection and safe cleanup.
+// ABOUTME: Records only drwn-owned paths so cleanup never guesses ownership.
 
 import { closeSync, existsSync, fsyncSync, openSync, readFileSync, renameSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -17,7 +17,7 @@ export type ManagedPath =
   | { path: string; kind: "generated-symlink"; generatedPath: string };
 
 export function resolveProjectWriteRecordPath(projectRoot: string) {
-  return join(projectRoot, ".agents", "bgng", "write-record.json");
+  return join(projectRoot, ".agents", "drwn", "write-record.json");
 }
 
 export function loadWriteRecord(recordPath: string): WriteRecord | null {

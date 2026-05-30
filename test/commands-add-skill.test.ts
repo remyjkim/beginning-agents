@@ -1,4 +1,4 @@
-// ABOUTME: Verifies project-first skill activation through `bgng add skill`.
+// ABOUTME: Verifies project-first skill activation through `drwn add skill`.
 // ABOUTME: Protects local library lookup and project config mutation behavior.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -29,7 +29,7 @@ function envFor(fixture: Awaited<ReturnType<typeof scaffoldCliFixture>>, extra?:
   };
 }
 
-describe("bgng add skill", () => {
+describe("drwn add skill", () => {
   test("adds a repo-native skill to project config", async () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
@@ -40,7 +40,7 @@ describe("bgng add skill", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Added alpha");
-    const config = JSON.parse(await readFile(join(projectDir, ".agents", "bgng", "config.json"), "utf8")) as {
+    const config = JSON.parse(await readFile(join(projectDir, ".agents", "drwn", "config.json"), "utf8")) as {
       skills?: { include?: string[] };
     };
     expect(config.skills?.include).toEqual(["alpha"]);
@@ -55,7 +55,7 @@ describe("bgng add skill", () => {
     await runAgentsCli(["add", "skill", "alpha"], envFor(fixture), projectDir);
     await runAgentsCli(["add", "skill", "alpha"], envFor(fixture), projectDir);
 
-    const config = JSON.parse(await readFile(join(projectDir, ".agents", "bgng", "config.json"), "utf8")) as {
+    const config = JSON.parse(await readFile(join(projectDir, ".agents", "drwn", "config.json"), "utf8")) as {
       skills?: { include?: string[] };
     };
     expect(config.skills?.include).toEqual(["alpha"]);
@@ -71,7 +71,7 @@ describe("bgng add skill", () => {
     const result = await runAgentsCli(["add", "skill", "hello-skill"], envFor(fixture), projectDir);
 
     expect(result.exitCode).toBe(0);
-    const config = JSON.parse(await readFile(join(projectDir, ".agents", "bgng", "config.json"), "utf8")) as {
+    const config = JSON.parse(await readFile(join(projectDir, ".agents", "drwn", "config.json"), "utf8")) as {
       skills?: { include?: string[] };
     };
     expect(config.skills?.include).toEqual(["hello-skill"]);
@@ -89,7 +89,7 @@ describe("bgng add skill", () => {
     const parsed = JSON.parse(result.stdout) as { kind: string; id: string };
     expect(parsed.kind).toBe("skill");
     expect(parsed.id).toBe("alpha");
-    expect(existsSync(join(projectDir, ".agents", "bgng", "config.json"))).toBe(false);
+    expect(existsSync(join(projectDir, ".agents", "drwn", "config.json"))).toBe(false);
   });
 
   test("library-only missing skill fails without writing config", async () => {
@@ -102,7 +102,7 @@ describe("bgng add skill", () => {
 
     expect(result.exitCode).not.toBe(0);
     expect(`${result.stdout}\n${result.stderr}`).toContain("No local skill found");
-    expect(existsSync(join(projectDir, ".agents", "bgng", "config.json"))).toBe(false);
+    expect(existsSync(join(projectDir, ".agents", "drwn", "config.json"))).toBe(false);
   });
 
   test("argumentless add skill fails clearly in non-TTY mode", async () => {
@@ -128,7 +128,7 @@ describe("bgng add skill", () => {
     const result = await runAgentsCli(["add", "skill", "hello", "--yes"], envFor(fixture, { PATH: `${binDir}:${process.env.PATH ?? ""}` }), projectDir);
 
     expect(result.exitCode).toBe(0);
-    const config = JSON.parse(await readFile(join(projectDir, ".agents", "bgng", "config.json"), "utf8")) as {
+    const config = JSON.parse(await readFile(join(projectDir, ".agents", "drwn", "config.json"), "utf8")) as {
       skills?: { include?: string[] };
     };
     expect(config.skills?.include).toEqual(["hello-skill"]);

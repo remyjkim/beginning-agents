@@ -88,7 +88,7 @@ export async function executeBeadsSetupPlan(plan: BeadsSetupPlan, env?: Record<s
 }
 
 export function ensureProjectSkillInclude(projectDir: string, skillName = "beads-task-tracking") {
-  const configPath = join(projectDir, ".agents", "bgng", "config.json");
+  const configPath = join(projectDir, ".agents", "drwn", "config.json");
   const config: ProjectConfig = existsSync(configPath)
     ? JSON.parse(readFileSync(configPath, "utf8")) as ProjectConfig
     : { version: 1 };
@@ -99,7 +99,7 @@ export function ensureProjectSkillInclude(projectDir: string, skillName = "beads
     config.skills.include.push(skillName);
   }
 
-  mkdirSync(join(projectDir, ".agents", "bgng"), { recursive: true });
+  mkdirSync(join(projectDir, ".agents", "drwn"), { recursive: true });
   writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
   return configPath;
 }

@@ -11,13 +11,13 @@ Use per-project config when one project needs a different effective view than th
 
 ```bash
 cd /path/to/project
-bgng init
+drwn init
 ```
 
 This creates:
 
 ```text
-<project>/.agents/bgng/config.json
+<project>/.agents/drwn/config.json
 ```
 
 ## Capabilities
@@ -33,7 +33,7 @@ Project config can:
 
 ## Discovery
 
-Project config is applied by `bgng write`, `bgng mcp list`, `bgng mcp write`, `bgng status`, `bgng doctor`, and extension status/doctor/setup commands.
+Project config is applied by `drwn write`, `drwn mcp list`, `drwn mcp write`, `drwn status`, `drwn doctor`, and extension status/doctor/setup commands.
 
 Discovery walks upward from the current working directory and uses the nearest config file.
 
@@ -68,14 +68,14 @@ Discovery walks upward from the current working directory and uses the nearest c
 resolved versions:
 
 ```text
-<project>/.agents/bgng/card.lock
+<project>/.agents/drwn/card.lock
 ```
 
 Track `config.json` and `card.lock` with the project. The write record is
 machine-local materialization state:
 
 ```text
-<project>/.agents/bgng/write-record.json
+<project>/.agents/drwn/write-record.json
 ```
 
 When cards are present, effective state is:
@@ -84,12 +84,12 @@ When cards are present, effective state is:
 built-in defaults + user library + cards in lockfile order + project overlay
 ```
 
-Machine-only defaults from `~/.agents/bgng/machine.json` do not apply inside a
+Machine-only defaults from `~/.agents/drwn/machine.json` do not apply inside a
 configured project.
 
 ## Project-local Materialization
 
-When `bgng write` runs inside a configured project, it writes downstream state
+When `drwn write` runs inside a configured project, it writes downstream state
 under the project root:
 
 ```text
@@ -98,7 +98,7 @@ under the project root:
 <project>/.codex/config.toml
 <project>/.codex/skills/
 <project>/.cursor/mcp.json
-<project>/.agents/bgng/generated/cursor-mcp.json
+<project>/.agents/drwn/generated/cursor-mcp.json
 ```
 
 ## Skill Include / Exclude
@@ -108,7 +108,7 @@ Lower-level `skills.include` and `skills.exclude` work for repo-native and packa
 ## Useful Workflow
 
 ```bash
-bgng status
-bgng write --dry-run
-bgng doctor
+drwn status
+drwn write --dry-run
+drwn doctor
 ```

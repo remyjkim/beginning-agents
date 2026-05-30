@@ -1,4 +1,4 @@
-// ABOUTME: Provides shared path resolution helpers for the bgng harness CLI and sync wrapper.
+// ABOUTME: Provides shared path resolution helpers for the drwn harness CLI and sync wrapper.
 // ABOUTME: Normalizes repo, home, tool, and skill-scope paths without command-layer dependencies.
 
 import { realpathSync } from "node:fs";
@@ -18,12 +18,12 @@ export function resolveAgentsDir(homeDir: string) {
   return join(homeDir, ".agents");
 }
 
-export function resolveUserBgngDir(agentsDir: string) {
-  return join(agentsDir, "bgng");
+export function resolveUserDrwnDir(agentsDir: string) {
+  return join(agentsDir, "drwn");
 }
 
 export function resolveUserConfigPath(agentsDir: string) {
-  return join(resolveUserBgngDir(agentsDir), "config.json");
+  return join(resolveUserDrwnDir(agentsDir), "config.json");
 }
 
 export function resolveLibraryDir(agentsDir: string) {

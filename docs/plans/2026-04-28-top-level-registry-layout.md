@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Move packaged beginning-harness source data from root `config.json` and `mcp-servers.json` into `registry/` while preserving local `.agents/bgng/config.json` semantics.
+**Goal:** Move packaged darwinian-harness source data from root `config.json` and `mcp-servers.json` into `registry/` while preserving local `.agents/drwn/config.json` semantics.
 
-**Architecture:** Centralize packaged registry paths in `cli/core/paths.ts`, then make all loaders, context validation, fixtures, release checks, docs, and package metadata use those helpers or the new literal paths. Keep project overlay paths unchanged under `.agents/bgng/config.json`.
+**Architecture:** Centralize packaged registry paths in `cli/core/paths.ts`, then make all loaders, context validation, fixtures, release checks, docs, and package metadata use those helpers or the new literal paths. Keep project overlay paths unchanged under `.agents/drwn/config.json`.
 
 **Tech Stack:** Bun, TypeScript, Clipanion CLI, Bun test runner, npm package manifest.
 
@@ -94,7 +94,7 @@ Expected: path behavior passes or reveals remaining root assumptions.
 - Move: `config.json` to `registry/config.json`
 - Move: `mcp-servers.json` to `registry/mcp-servers.json`
 - Create: `docs/assets/`
-- Move: `the-beginning-harness.png` to `docs/assets/the-beginning-harness.png`
+- Move: `the-darwinian-harness.png` to `docs/assets/the-darwinian-harness.png`
 - Move or leave untracked: `image.png`
 
 **Step 1: Move files**
@@ -111,7 +111,7 @@ Modify `package.json`:
   "registry",
   "skills",
   "README.md",
-  "docs/assets/the-beginning-harness.png",
+  "docs/assets/the-darwinian-harness.png",
   "LICENSE",
   "CONTRIBUTING.md"
 ]
@@ -138,8 +138,8 @@ mcp-servers.json -> registry/mcp-servers.json
 Do not change references to:
 
 ```text
-~/.agents/bgng/config.json
-<project>/.agents/bgng/config.json
+~/.agents/drwn/config.json
+<project>/.agents/drwn/config.json
 ~/.agents/library/mcp-servers.json
 ```
 

@@ -1,4 +1,4 @@
-// ABOUTME: Implements bgng store status for cards-era store inspection.
+// ABOUTME: Implements drwn store status for cards-era store inspection.
 // ABOUTME: Reports store initialization and high-level inventory counts.
 
 import { Option } from "clipanion";
@@ -13,13 +13,13 @@ export class StoreStatusCommand extends BaseCommand {
     category: "Store",
     description: "Show cards-era store status.",
     details: `
-      Reports whether ~/.agents/bgng has been initialized as a cards-era store,
+      Reports whether ~/.agents/drwn has been initialized as a cards-era store,
       its schema version, inventory counts, and whether a pre-cards layout is
       still present.
     `,
     examples: [
-      ["Show store status", "bgng store status"],
-      ["Show store status as JSON", "bgng store status --json"],
+      ["Show store status", "drwn store status"],
+      ["Show store status as JSON", "drwn store status --json"],
     ],
   });
 

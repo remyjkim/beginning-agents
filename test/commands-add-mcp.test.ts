@@ -1,4 +1,4 @@
-// ABOUTME: Verifies project-first MCP activation through `bgng add mcp`.
+// ABOUTME: Verifies project-first MCP activation through `drwn add mcp`.
 // ABOUTME: Protects project-local server toggles and dry-run safety.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -21,7 +21,7 @@ function envFor(fixture: Awaited<ReturnType<typeof scaffoldCliFixture>>) {
   };
 }
 
-describe("bgng add mcp", () => {
+describe("drwn add mcp", () => {
   test("adds a harness MCP server toggle to project config", async () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
@@ -32,7 +32,7 @@ describe("bgng add mcp", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Added context7");
-    const config = JSON.parse(await readFile(join(projectDir, ".agents", "bgng", "config.json"), "utf8")) as {
+    const config = JSON.parse(await readFile(join(projectDir, ".agents", "drwn", "config.json"), "utf8")) as {
       servers?: Record<string, { enabled?: boolean }>;
     };
     expect(config.servers?.context7).toEqual({ enabled: true });
@@ -42,8 +42,8 @@ describe("bgng add mcp", () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
     const projectDir = join(fixture.root, "project");
-    const configPath = join(projectDir, ".agents", "bgng", "config.json");
-    await mkdir(join(projectDir, ".agents", "bgng"), { recursive: true });
+    const configPath = join(projectDir, ".agents", "drwn", "config.json");
+    await mkdir(join(projectDir, ".agents", "drwn"), { recursive: true });
     await writeFile(configPath, JSON.stringify({ version: 1, skills: { include: ["alpha"] } }, null, 2));
 
     await runAgentsCli(["add", "mcp", "context7"], envFor(fixture), projectDir);
@@ -68,7 +68,7 @@ describe("bgng add mcp", () => {
     const parsed = JSON.parse(result.stdout) as { kind: string; id: string };
     expect(parsed.kind).toBe("mcp");
     expect(parsed.id).toBe("context7");
-    expect(existsSync(join(projectDir, ".agents", "bgng", "config.json"))).toBe(false);
+    expect(existsSync(join(projectDir, ".agents", "drwn", "config.json"))).toBe(false);
   });
 
   test("library-only missing MCP server fails without writing config", async () => {
@@ -81,7 +81,7 @@ describe("bgng add mcp", () => {
 
     expect(result.exitCode).not.toBe(0);
     expect(`${result.stdout}\n${result.stderr}`).toContain("No local MCP server found");
-    expect(existsSync(join(projectDir, ".agents", "bgng", "config.json"))).toBe(false);
+    expect(existsSync(join(projectDir, ".agents", "drwn", "config.json"))).toBe(false);
   });
 
   test("argumentless add mcp fails clearly in non-TTY mode", async () => {
@@ -123,7 +123,7 @@ describe("bgng add mcp", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("GITHUB_TOKEN");
-    const projectConfig = JSON.parse(await readFile(join(projectDir, ".agents", "bgng", "config.json"), "utf8")) as {
+    const projectConfig = JSON.parse(await readFile(join(projectDir, ".agents", "drwn", "config.json"), "utf8")) as {
       servers?: Record<string, { command?: string; env?: Record<string, string> }>;
     };
     expect(projectConfig.servers?.github?.command).toBe("npx");
@@ -133,10 +133,10 @@ describe("bgng add mcp", () => {
   test("does not write a project override for an already global default MCP", async () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
-    await mkdir(join(fixture.agentsDir, "bgng"), { recursive: true });
+    await mkdir(join(fixture.agentsDir, "drwn"), { recursive: true });
     const repoConfig = JSON.parse(await readFile(join(fixture.repoRoot, "registry", "config.json"), "utf8"));
     repoConfig.defaults = { mcpServers: ["context7"] };
-    await writeFile(join(fixture.agentsDir, "bgng", "config.json"), JSON.stringify(repoConfig, null, 2));
+    await writeFile(join(fixture.agentsDir, "drwn", "config.json"), JSON.stringify(repoConfig, null, 2));
     const projectDir = join(fixture.root, "project");
     await mkdir(projectDir, { recursive: true });
 
@@ -146,7 +146,7 @@ describe("bgng add mcp", () => {
     const parsed = JSON.parse(result.stdout) as { action: string; projectChanges: unknown[] };
     expect(parsed.action).toBe("already-active");
     expect(parsed.projectChanges).toEqual([]);
-    expect(existsSync(join(projectDir, ".agents", "bgng", "config.json"))).toBe(false);
+    expect(existsSync(join(projectDir, ".agents", "drwn", "config.json"))).toBe(false);
   });
 
   test("adds a user library MCP server toggle to project config", async () => {
@@ -170,7 +170,7 @@ describe("bgng add mcp", () => {
     const result = await runAgentsCli(["add", "mcp", "github"], envFor(fixture), projectDir);
 
     expect(result.exitCode).toBe(0);
-    const config = JSON.parse(await readFile(join(projectDir, ".agents", "bgng", "config.json"), "utf8")) as {
+    const config = JSON.parse(await readFile(join(projectDir, ".agents", "drwn", "config.json"), "utf8")) as {
       servers?: Record<string, { enabled?: boolean }>;
     };
     expect(config.servers?.github).toEqual({ enabled: true });

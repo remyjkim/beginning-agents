@@ -1,4 +1,4 @@
-// ABOUTME: Verifies the target `bgng write` command surface over the materialization engine.
+// ABOUTME: Verifies the target `drwn write` command surface over the materialization engine.
 // ABOUTME: Protects the supported one-way write vocabulary for downstream tool updates.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -13,7 +13,7 @@ afterEach(async () => {
   await cleanupTempRoots(tempRoots);
 });
 
-describe("bgng write", () => {
+describe("drwn write", () => {
   test("dry-run reports planned materialization changes", async () => {
     const fixture = await scaffoldCliFixture({ curatedSkillNames: ["alpha"] });
     tempRoots.push(fixture.root);
@@ -69,10 +69,10 @@ describe("bgng write", () => {
   test("global default skills write without curated symlinks", async () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
-    await mkdir(join(fixture.agentsDir, "bgng"), { recursive: true });
+    await mkdir(join(fixture.agentsDir, "drwn"), { recursive: true });
     const repoConfig = JSON.parse(await readFile(join(fixture.repoRoot, "registry", "config.json"), "utf8"));
     repoConfig.defaults = { skills: ["alpha"], mcpServers: ["context7"] };
-    await writeFile(join(fixture.agentsDir, "bgng", "config.json"), JSON.stringify(repoConfig, null, 2));
+    await writeFile(join(fixture.agentsDir, "drwn", "config.json"), JSON.stringify(repoConfig, null, 2));
 
     const result = await runAgentsCli(["write", "--dry-run"], {
       AGENTS_REPO_ROOT: fixture.repoRoot,
@@ -89,14 +89,14 @@ describe("bgng write", () => {
   test("project excludes remove global default skills", async () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
-    await mkdir(join(fixture.agentsDir, "bgng"), { recursive: true });
+    await mkdir(join(fixture.agentsDir, "drwn"), { recursive: true });
     const repoConfig = JSON.parse(await readFile(join(fixture.repoRoot, "registry", "config.json"), "utf8"));
     repoConfig.defaults = { skills: ["alpha"], mcpServers: ["context7"] };
-    await writeFile(join(fixture.agentsDir, "bgng", "config.json"), JSON.stringify(repoConfig, null, 2));
+    await writeFile(join(fixture.agentsDir, "drwn", "config.json"), JSON.stringify(repoConfig, null, 2));
     const projectDir = join(fixture.root, "project");
-    await mkdir(join(projectDir, ".agents", "bgng"), { recursive: true });
+    await mkdir(join(projectDir, ".agents", "drwn"), { recursive: true });
     await writeFile(
-      join(projectDir, ".agents", "bgng", "config.json"),
+      join(projectDir, ".agents", "drwn", "config.json"),
       JSON.stringify({ version: 1, skills: { exclude: ["alpha"] } }, null, 2),
     );
 
@@ -114,14 +114,14 @@ describe("bgng write", () => {
   test("project server disable overrides explicit global MCP defaults", async () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
-    await mkdir(join(fixture.agentsDir, "bgng"), { recursive: true });
+    await mkdir(join(fixture.agentsDir, "drwn"), { recursive: true });
     const repoConfig = JSON.parse(await readFile(join(fixture.repoRoot, "registry", "config.json"), "utf8"));
     repoConfig.defaults = { mcpServers: ["context7"] };
-    await writeFile(join(fixture.agentsDir, "bgng", "config.json"), JSON.stringify(repoConfig, null, 2));
+    await writeFile(join(fixture.agentsDir, "drwn", "config.json"), JSON.stringify(repoConfig, null, 2));
     const projectDir = join(fixture.root, "project");
-    await mkdir(join(projectDir, ".agents", "bgng"), { recursive: true });
+    await mkdir(join(projectDir, ".agents", "drwn"), { recursive: true });
     await writeFile(
-      join(projectDir, ".agents", "bgng", "config.json"),
+      join(projectDir, ".agents", "drwn", "config.json"),
       JSON.stringify({ version: 1, servers: { context7: { enabled: false } } }, null, 2),
     );
 
@@ -151,10 +151,10 @@ describe("bgng write", () => {
         },
       },
     });
-    await mkdir(join(fixture.agentsDir, "bgng"), { recursive: true });
+    await mkdir(join(fixture.agentsDir, "drwn"), { recursive: true });
     const repoConfig = JSON.parse(await readFile(join(fixture.repoRoot, "registry", "config.json"), "utf8"));
     repoConfig.defaults = { mcpServers: ["github"] };
-    await writeFile(join(fixture.agentsDir, "bgng", "config.json"), JSON.stringify(repoConfig, null, 2));
+    await writeFile(join(fixture.agentsDir, "drwn", "config.json"), JSON.stringify(repoConfig, null, 2));
 
     const result = await runAgentsCli(["write", "--dry-run"], {
       AGENTS_REPO_ROOT: fixture.repoRoot,
@@ -183,9 +183,9 @@ describe("bgng write", () => {
       },
     });
     const projectDir = join(fixture.root, "project");
-    await mkdir(join(projectDir, ".agents", "bgng"), { recursive: true });
+    await mkdir(join(projectDir, ".agents", "drwn"), { recursive: true });
     await writeFile(
-      join(projectDir, ".agents", "bgng", "config.json"),
+      join(projectDir, ".agents", "drwn", "config.json"),
       JSON.stringify({ version: 1, servers: { github: { enabled: true } } }, null, 2),
     );
 
@@ -205,9 +205,9 @@ describe("bgng write", () => {
     tempRoots.push(fixture.root);
     await publishCardWithSkills(fixture, { name: "@me/backend", skills: ["alpha"] });
     const projectDir = join(fixture.root, "project");
-    await mkdir(join(projectDir, ".agents", "bgng"), { recursive: true });
+    await mkdir(join(projectDir, ".agents", "drwn"), { recursive: true });
     await writeFile(
-      join(projectDir, ".agents", "bgng", "config.json"),
+      join(projectDir, ".agents", "drwn", "config.json"),
       JSON.stringify({ version: 1, cards: ["@me/backend@^1.0.0"] }, null, 2),
     );
 
@@ -227,9 +227,9 @@ describe("bgng write", () => {
     tempRoots.push(fixture.root);
     await publishCardWithSkills(fixture, { name: "@me/backend", skills: ["alpha"] });
     const projectDir = join(fixture.root, "project");
-    await mkdir(join(projectDir, ".agents", "bgng"), { recursive: true });
+    await mkdir(join(projectDir, ".agents", "drwn"), { recursive: true });
     await writeFile(
-      join(projectDir, ".agents", "bgng", "config.json"),
+      join(projectDir, ".agents", "drwn", "config.json"),
       JSON.stringify({ version: 1, cards: ["@me/backend@^1.0.0"] }, null, 2),
     );
 

@@ -25,7 +25,7 @@ test("project write targets project-local agent files and leaves home files unch
   const fixture = await scaffoldCliFixture();
   tempRoots.push(fixture.root);
   const projectDir = join(fixture.root, "project");
-  const configPath = join(projectDir, ".agents", "bgng", "config.json");
+  const configPath = join(projectDir, ".agents", "drwn", "config.json");
   await mkdir(dirname(configPath), { recursive: true });
   await writeFile(configPath, JSON.stringify({ version: 1, skills: { include: ["alpha"] } }, null, 2));
   const beforeHomeClaude = await readFile(fixture.claudeSettings, "utf8");
@@ -37,8 +37,8 @@ test("project write targets project-local agent files and leaves home files unch
   expect(JSON.parse(await readFile(join(projectDir, ".claude", "settings.json"), "utf8")).mcpServers.context7).toBeDefined();
   expect(await readFile(join(projectDir, ".codex", "config.toml"), "utf8")).toContain("[mcp_servers.context7]");
   expect((await lstat(join(projectDir, ".cursor", "mcp.json"))).isSymbolicLink()).toBe(true);
-  expect(existsSync(join(projectDir, ".agents", "bgng", "generated", "cursor-mcp.json"))).toBe(true);
+  expect(existsSync(join(projectDir, ".agents", "drwn", "generated", "cursor-mcp.json"))).toBe(true);
   expect(existsSync(join(projectDir, ".claude", "skills", "alpha"))).toBe(true);
   expect(existsSync(join(fixture.homeDir, ".claude", "skills", "alpha"))).toBe(false);
-  expect(existsSync(join(projectDir, ".agents", "bgng", "write-record.json"))).toBe(true);
+  expect(existsSync(join(projectDir, ".agents", "drwn", "write-record.json"))).toBe(true);
 });

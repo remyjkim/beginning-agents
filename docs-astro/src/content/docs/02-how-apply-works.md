@@ -1,17 +1,17 @@
 ---
 title: "How Write Works"
-description: "How bgng resolves machine, project, card, and local-store state."
+description: "How drwn resolves machine, project, card, and local-store state."
 date: 2026-04-28
 order: 2
 ---
 
 ## Scope Detection
 
-`bgng write` first decides whether it is running in a configured project.
+`drwn write` first decides whether it is running in a configured project.
 Discovery walks upward from the current directory for:
 
 ```text
-<project>/.agents/bgng/config.json
+<project>/.agents/drwn/config.json
 ```
 
 That one decision controls both the effective state and the write destination.
@@ -21,7 +21,7 @@ That one decision controls both the effective state and the write destination.
 Outside a configured project, effective state is:
 
 ```text
-packaged defaults + local store inventory + ~/.agents/bgng/machine.json
+packaged defaults + local store inventory + ~/.agents/drwn/machine.json
 ```
 
 Machine-scope writes materialize into:
@@ -30,8 +30,8 @@ Machine-scope writes materialize into:
 ~/.claude/
 ~/.codex/
 ~/.cursor/
-~/.agents/bgng/generated/
-~/.agents/bgng/global-write-record.json
+~/.agents/drwn/generated/
+~/.agents/drwn/global-write-record.json
 ```
 
 Use machine defaults when every project should inherit the same skill or MCP
@@ -51,11 +51,11 @@ Project-scope writes materialize into:
 <project>/.claude/
 <project>/.codex/
 <project>/.cursor/
-<project>/.agents/bgng/generated/
-<project>/.agents/bgng/write-record.json
+<project>/.agents/drwn/generated/
+<project>/.agents/drwn/write-record.json
 ```
 
-Machine-only defaults from `~/.agents/bgng/machine.json` do not apply inside a
+Machine-only defaults from `~/.agents/drwn/machine.json` do not apply inside a
 configured project. The project config, selected cards when present, and
 explicit project overlay are the project source of truth.
 
@@ -64,14 +64,14 @@ explicit project overlay are the project source of truth.
 A project selects cards in:
 
 ```text
-<project>/.agents/bgng/config.json
+<project>/.agents/drwn/config.json
 ```
 
-`bgng apply`, `bgng card add`, `bgng card pin`, and `bgng card update` resolve
+`drwn apply`, `drwn card add`, `drwn card pin`, and `drwn card update` resolve
 those refs into:
 
 ```text
-<project>/.agents/bgng/card.lock
+<project>/.agents/drwn/card.lock
 ```
 
 The lockfile records exact versions and integrity so repeated writes are
@@ -79,49 +79,49 @@ deterministic.
 
 ## Write Records
 
-Write records let `bgng` distinguish paths it owns from user-owned state.
+Write records let `drwn` distinguish paths it owns from user-owned state.
 
 On the next write:
 
-- bgng-owned paths that left the effective state are removed
+- drwn-owned paths that left the effective state are removed
 - user-owned replacements are preserved and reported
 - generated files are rewritten from the effective state
 
 Use `--force` only when you intentionally want to overwrite drift inside
-bgng-managed file regions.
+drwn-managed file regions.
 
 ## Running Write
 
 Preview before writing:
 
 ```bash
-bgng write --dry-run
+drwn write --dry-run
 ```
 
 Write everything:
 
 ```bash
-bgng write
+drwn write
 ```
 
 Run only one side when needed:
 
 ```bash
-bgng write --mcp-only
-bgng write --skills-only
+drwn write --mcp-only
+drwn write --skills-only
 ```
 
 Limit write to one target:
 
 ```bash
-bgng write --target=claude
-bgng mcp write --target=cursor
+drwn write --target=claude
+drwn mcp write --target=cursor
 ```
 
 Resolve managed-field drift intentionally:
 
 ```bash
-bgng write --force
+drwn write --force
 ```
 
 ## Usage Modes
@@ -131,8 +131,8 @@ bgng write --force
 Use the published package when you want the default config and CLI behavior:
 
 ```bash
-npm install -g beginning-harness
-bgng write --dry-run
+npm install -g darwinian-harness
+drwn write --dry-run
 ```
 
 ### Editable harness source
@@ -140,8 +140,8 @@ bgng write --dry-run
 Use a checkout when you want to own the source of truth:
 
 ```bash
-export AGENTS_REPO_ROOT=/path/to/beginning-harness
-bgng status
+export AGENTS_REPO_ROOT=/path/to/darwinian-harness
+drwn status
 ```
 
 In checkout mode, edit:

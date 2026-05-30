@@ -19,7 +19,7 @@ async function createTempRoot() {
 }
 
 async function readProjectConfig(projectDir: string) {
-  return JSON.parse(await readFile(join(projectDir, ".agents", "bgng", "config.json"), "utf8")) as Record<string, unknown>;
+  return JSON.parse(await readFile(join(projectDir, ".agents", "drwn", "config.json"), "utf8")) as Record<string, unknown>;
 }
 
 describe("core project writes", () => {
@@ -36,13 +36,13 @@ describe("core project writes", () => {
     const { writeProjectConfigForWrite } = await import("../cli/core/project-writes");
     const configPath = writeProjectConfigForWrite(projectDir, { version: 1, skills: { include: ["alpha"] } });
 
-    expect(configPath).toBe(join(projectDir, ".agents", "bgng", "config.json"));
+    expect(configPath).toBe(join(projectDir, ".agents", "drwn", "config.json"));
     expect(await readProjectConfig(projectDir)).toEqual({ version: 1, skills: { include: ["alpha"] } });
   });
 
   test("includes project skills without duplicating or removing unrelated config", async () => {
     const projectDir = await createTempRoot();
-    const configPath = join(projectDir, ".agents", "bgng", "config.json");
+    const configPath = join(projectDir, ".agents", "drwn", "config.json");
     await mkdir(dirname(configPath), { recursive: true });
     await writeFile(
       configPath,

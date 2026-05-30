@@ -1,4 +1,4 @@
-// ABOUTME: Verifies user-owned bgng global config helpers.
+// ABOUTME: Verifies user-owned drwn global config helpers.
 // ABOUTME: Protects defaults initialization without changing repo-root fixture behavior.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -14,14 +14,14 @@ afterEach(async () => {
 });
 
 describe("user global config", () => {
-  test("resolves the user bgng config under the agents dir", async () => {
+  test("resolves the user drwn config under the agents dir", async () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
 
-    const { resolveUserBgngDir, resolveUserConfigPath } = await import("../cli/core/user-config");
+    const { resolveUserDrwnDir, resolveUserConfigPath } = await import("../cli/core/user-config");
 
-    expect(resolveUserBgngDir(fixture.agentsDir)).toBe(join(fixture.agentsDir, "bgng"));
-    expect(resolveUserConfigPath(fixture.agentsDir)).toBe(join(fixture.agentsDir, "bgng", "config.json"));
+    expect(resolveUserDrwnDir(fixture.agentsDir)).toBe(join(fixture.agentsDir, "drwn"));
+    expect(resolveUserConfigPath(fixture.agentsDir)).toBe(join(fixture.agentsDir, "drwn", "config.json"));
   });
 
   test("saves and loads stable user config JSON", async () => {
