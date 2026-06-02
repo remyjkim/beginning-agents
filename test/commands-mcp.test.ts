@@ -1,4 +1,4 @@
-// ABOUTME: Verifies the public `bgng mcp list` and `bgng mcp write` command surfaces.
+// ABOUTME: Verifies the public `drwn mcp list` and `drwn mcp write` command surfaces.
 // ABOUTME: Protects harness MCP listing and write behavior while the CLI replaces ad hoc script usage.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -12,7 +12,7 @@ afterEach(async () => {
   await cleanupTempRoots(tempRoots);
 });
 
-describe("bgng mcp", () => {
+describe("drwn mcp", () => {
   test("list shows harness servers and active state", async () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
@@ -47,7 +47,7 @@ describe("bgng mcp", () => {
     const fixture = await scaffoldCliFixture({ parallelMcpEnabled: false });
     tempRoots.push(fixture.root);
     const projectDir = join(fixture.root, "project");
-    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    const projectConfigPath = join(projectDir, ".agents", "drwn", "config.json");
     await mkdir(dirname(projectConfigPath), { recursive: true });
     await writeFile(
       projectConfigPath,
@@ -115,7 +115,7 @@ describe("bgng mcp", () => {
     const fixture = await scaffoldCliFixture({ parallelMcpEnabled: false });
     tempRoots.push(fixture.root);
     const projectDir = join(fixture.root, "project");
-    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    const projectConfigPath = join(projectDir, ".agents", "drwn", "config.json");
     await mkdir(dirname(projectConfigPath), { recursive: true });
     await writeFile(
       projectConfigPath,
@@ -184,8 +184,8 @@ describe("bgng mcp", () => {
     });
     const config = JSON.parse(await readFile(join(fixture.repoRoot, "registry", "config.json"), "utf8"));
     config.defaults = { mcpServers: ["github"] };
-    await mkdir(join(fixture.agentsDir, "bgng"), { recursive: true });
-    await writeFile(join(fixture.agentsDir, "bgng", "config.json"), JSON.stringify(config, null, 2));
+    await mkdir(join(fixture.agentsDir, "drwn"), { recursive: true });
+    await writeFile(join(fixture.agentsDir, "drwn", "config.json"), JSON.stringify(config, null, 2));
 
     const result = await runAgentsCli(["mcp", "list", "--json"], {
       AGENTS_REPO_ROOT: fixture.repoRoot,

@@ -1,4 +1,4 @@
-// ABOUTME: Verifies the public `bgng doctor` command stays report-only while surfacing drift and stale state.
+// ABOUTME: Verifies the public `drwn doctor` command stays report-only while surfacing drift and stale state.
 // ABOUTME: Protects the safe-by-default diagnostics contract for the new CLI.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -12,7 +12,7 @@ afterEach(async () => {
   await cleanupTempRoots(tempRoots);
 });
 
-describe("bgng doctor", () => {
+describe("drwn doctor", () => {
   test("reports stale downstream skill symlinks", async () => {
     const fixture = await scaffoldCliFixture({ curatedSkillNames: ["alpha"] });
     tempRoots.push(fixture.root);
@@ -127,7 +127,7 @@ describe("bgng doctor", () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
     const projectDir = join(fixture.root, "project");
-    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    const projectConfigPath = join(projectDir, ".agents", "drwn", "config.json");
     await mkdir(dirname(projectConfigPath), { recursive: true });
     await writeFile(
       projectConfigPath,
@@ -168,8 +168,8 @@ describe("bgng doctor", () => {
     tempRoots.push(fixture.root);
     const config = JSON.parse(await Bun.file(join(fixture.repoRoot, "registry", "config.json")).text());
     config.defaults = { skills: ["missing-skill"], mcpServers: ["missing-mcp"] };
-    await mkdir(join(fixture.agentsDir, "bgng"), { recursive: true });
-    await writeFile(join(fixture.agentsDir, "bgng", "config.json"), JSON.stringify(config, null, 2));
+    await mkdir(join(fixture.agentsDir, "drwn"), { recursive: true });
+    await writeFile(join(fixture.agentsDir, "drwn", "config.json"), JSON.stringify(config, null, 2));
 
     const result = await runAgentsCli(["doctor", "--json"], {
       AGENTS_REPO_ROOT: fixture.repoRoot,
@@ -188,7 +188,7 @@ describe("bgng doctor", () => {
     tempRoots.push(fixture.root);
     await publishCardWithSkills(fixture, { name: "@me/frontend", skills: ["polish"] });
     const projectDir = join(fixture.root, "project");
-    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    const projectConfigPath = join(projectDir, ".agents", "drwn", "config.json");
     await mkdir(dirname(projectConfigPath), { recursive: true });
     await writeFile(
       projectConfigPath,

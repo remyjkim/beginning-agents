@@ -78,11 +78,11 @@ test("resolveCard recomputes and rewrites stale .integrity from a v1.1 manifest 
   const fixture = await scaffoldCliFixture();
   tempRoots.push(fixture.root);
   await publishCardWithSkills(fixture, { name: "@me/legacy", skills: ["polish"] });
-  const versionDir = join(fixture.agentsDir, "bgng", "cards", "@me", "legacy", "1.0.0");
+  const versionDir = join(fixture.agentsDir, "drwn", "cards", "@me", "legacy", "1.0.0");
   const manifest = JSON.parse(await Bun.file(join(versionDir, "card.json")).text());
   const legacyHash = `sha256-${createHash("sha256").update(JSON.stringify(manifest)).digest("hex")}`;
   await writeFile(join(versionDir, ".integrity"), `${legacyHash}\n`);
-  const pkgIndexPath = join(fixture.agentsDir, "bgng", "cards", "@me", "legacy", "versions.json");
+  const pkgIndexPath = join(fixture.agentsDir, "drwn", "cards", "@me", "legacy", "versions.json");
   const pkgIndex = JSON.parse(await Bun.file(pkgIndexPath).text());
   pkgIndex.versions[0].integrity = legacyHash;
   await writeFile(pkgIndexPath, JSON.stringify(pkgIndex, null, 2));

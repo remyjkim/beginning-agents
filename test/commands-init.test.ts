@@ -1,4 +1,4 @@
-// ABOUTME: Verifies the bgng init command scaffolds per-project config in the caller's working directory.
+// ABOUTME: Verifies the drwn init command scaffolds per-project config in the caller's working directory.
 // ABOUTME: Protects the per-project bootstrap path and the safety semantics around overwriting config.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -12,8 +12,8 @@ afterEach(async () => {
   await cleanupTempRoots(tempRoots);
 });
 
-describe("bgng init", () => {
-  test("creates .agents/bgng/config.json with version 1", async () => {
+describe("drwn init", () => {
+  test("creates .agents/drwn/config.json with version 1", async () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
     const projectDir = join(fixture.root, "project");
@@ -26,7 +26,7 @@ describe("bgng init", () => {
     }, projectDir);
 
     expect(result.exitCode).toBe(0);
-    const configPath = join(projectDir, ".agents", "bgng", "config.json");
+    const configPath = join(projectDir, ".agents", "drwn", "config.json");
     expect(JSON.parse(await readFile(configPath, "utf8"))).toEqual({ version: 1 });
   });
 
@@ -34,7 +34,7 @@ describe("bgng init", () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
     const projectDir = join(fixture.root, "project");
-    const configPath = join(projectDir, ".agents", "bgng", "config.json");
+    const configPath = join(projectDir, ".agents", "drwn", "config.json");
     await mkdir(dirname(configPath), { recursive: true });
     await writeFile(configPath, JSON.stringify({ version: 1, skills: { include: ["alpha"] } }, null, 2));
 
@@ -52,7 +52,7 @@ describe("bgng init", () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
     const projectDir = join(fixture.root, "project");
-    const configPath = join(projectDir, ".agents", "bgng", "config.json");
+    const configPath = join(projectDir, ".agents", "drwn", "config.json");
     await mkdir(dirname(configPath), { recursive: true });
     await writeFile(configPath, JSON.stringify({ version: 1, skills: { include: ["alpha"] } }, null, 2));
 

@@ -1,4 +1,4 @@
-// ABOUTME: Verifies project-first extension activation through `bgng extensions add`.
+// ABOUTME: Verifies project-first extension activation through `drwn extensions add`.
 // ABOUTME: Protects the higher-level UX over the lower-level extensions setup commands.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -21,7 +21,7 @@ function envFor(fixture: Awaited<ReturnType<typeof scaffoldCliFixture>>) {
   };
 }
 
-describe("bgng extensions add", () => {
+describe("drwn extensions add", () => {
   test("adds Parallel extension config to the current project", async () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
@@ -32,7 +32,7 @@ describe("bgng extensions add", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Added Parallel extension");
-    const config = JSON.parse(await readFile(join(projectDir, ".agents", "bgng", "config.json"), "utf8")) as {
+    const config = JSON.parse(await readFile(join(projectDir, ".agents", "drwn", "config.json"), "utf8")) as {
       extensions?: { parallel?: unknown };
     };
     expect(config.extensions?.parallel).toEqual({ enabled: true, skills: true, mcp: true });
@@ -51,7 +51,7 @@ describe("bgng extensions add", () => {
     expect(parsed.kind).toBe("extension");
     expect(parsed.id).toBe("parallel");
     expect(parsed.projectChanges[0]?.action).toBe("enabled");
-    expect(existsSync(join(projectDir, ".agents", "bgng", "config.json"))).toBe(false);
+    expect(existsSync(join(projectDir, ".agents", "drwn", "config.json"))).toBe(false);
   });
 
   test("adds Beads semantic config without running external setup", async () => {
@@ -63,7 +63,7 @@ describe("bgng extensions add", () => {
     const result = await runAgentsCli(["extensions", "add", "beads", "--target=codex", "--include-skill"], envFor(fixture), projectDir);
 
     expect(result.exitCode).toBe(0);
-    const config = JSON.parse(await readFile(join(projectDir, ".agents", "bgng", "config.json"), "utf8")) as {
+    const config = JSON.parse(await readFile(join(projectDir, ".agents", "drwn", "config.json"), "utf8")) as {
       extensions?: { beads?: unknown };
     };
     expect(config.extensions?.beads).toEqual({ enabled: true, targets: ["codex"], includeSkill: true });
@@ -79,7 +79,7 @@ describe("bgng extensions add", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Added MarkItDown extension");
-    const config = JSON.parse(await readFile(join(projectDir, ".agents", "bgng", "config.json"), "utf8")) as {
+    const config = JSON.parse(await readFile(join(projectDir, ".agents", "drwn", "config.json"), "utf8")) as {
       extensions?: { markitdown?: unknown };
     };
     expect(config.extensions?.markitdown).toEqual({ enabled: true, skills: true });
@@ -94,7 +94,7 @@ describe("bgng extensions add", () => {
     const result = await runAgentsCli(["extensions", "add", "markitdown", "--skip-skills"], envFor(fixture), projectDir);
 
     expect(result.exitCode).toBe(0);
-    const config = JSON.parse(await readFile(join(projectDir, ".agents", "bgng", "config.json"), "utf8")) as {
+    const config = JSON.parse(await readFile(join(projectDir, ".agents", "drwn", "config.json"), "utf8")) as {
       extensions?: { markitdown?: unknown };
     };
     expect(config.extensions?.markitdown).toEqual({ enabled: true, skills: false });

@@ -10,7 +10,7 @@ import type { BaseCommand } from "../base";
 
 export function requireProjectRoot(command: BaseCommand) {
   if (!command.context.projectConfigPath) {
-    throw new UsageError("Run this command inside a project with .agents/bgng/config.json.");
+    throw new UsageError("Run this command inside a project with .agents/drwn/config.json.");
   }
   return resolveProjectRootFromConfigPath(command.context.projectConfigPath);
 }

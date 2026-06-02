@@ -1,4 +1,4 @@
-// ABOUTME: Implements `bgng card publish` for immutable local card versions.
+// ABOUTME: Implements `drwn card publish` for immutable local card versions.
 // ABOUTME: Refuses overwrites so lockfiles can trust published versions.
 
 import { Option } from "clipanion";
@@ -13,10 +13,10 @@ export class CardPublishCommand extends BaseCommand {
     description: "Publish a card source into the immutable local card store.",
     details: `
       Validates card.json and package.json when present, then copies the source
-      into ~/.agents/bgng/cards/<name>/<version>. Existing versions are never
+      into ~/.agents/drwn/cards/<name>/<version>. Existing versions are never
       overwritten.
     `,
-    examples: [["Publish a card", "bgng card publish @me/backend"]],
+    examples: [["Publish a card", "drwn card publish @me/backend"]],
   });
 
   name = Option.String({ required: true });

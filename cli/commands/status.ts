@@ -1,4 +1,4 @@
-// ABOUTME: Implements the `bgng status` command for a concise system overview of repo and derived state.
+// ABOUTME: Implements the `drwn status` command for a concise system overview of repo and derived state.
 // ABOUTME: Provides both human-readable and JSON output for operators and automation.
 
 import { Option } from "clipanion";
@@ -15,14 +15,14 @@ export class StatusCommand extends BaseCommand {
     details: `
       Prints the resolved repo root, agents directory, home directory, enabled
       targets, and counts for skills and MCP servers. When run inside a project
-      with .agents/bgng/config.json, includes project overlay counts and active
+      with .agents/drwn/config.json, includes project overlay counts and active
       extension overrides.
 
       This command is read-only.
     `,
     examples: [
-      ["Quick status snapshot", "bgng status"],
-      ["JSON for tooling", "bgng status --json"],
+      ["Quick status snapshot", "drwn status"],
+      ["JSON for tooling", "drwn status --json"],
     ],
   });
 

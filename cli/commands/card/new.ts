@@ -1,4 +1,4 @@
-// ABOUTME: Implements `bgng card new` for creating editable local card sources.
+// ABOUTME: Implements `drwn card new` for creating editable local card sources.
 // ABOUTME: Persists authoring scope so repeated card creation stays concise.
 
 import { Option } from "clipanion";
@@ -10,15 +10,15 @@ export class CardNewCommand extends BaseCommand {
 
   static override usage = BaseCommand.Usage({
     category: "Cards",
-    description: "Create an editable Harness Card source under ~/.agents/bgng/sources.",
+    description: "Create an editable Harness Card source under ~/.agents/drwn/sources.",
     details: `
       Creates a source directory with card.json, skills/, and mcp-servers/.
       Unscoped names require --scope or a saved authoring.scope in machine.json.
       By default the source directory is initialized as a git repository.
     `,
     examples: [
-      ["Create a scoped card source", "bgng card new backend --scope @me"],
-      ["Create a fully-qualified card source", "bgng card new @me/backend --no-git"],
+      ["Create a scoped card source", "drwn card new backend --scope @me"],
+      ["Create a fully-qualified card source", "drwn card new @me/backend --no-git"],
     ],
   });
 

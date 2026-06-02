@@ -21,10 +21,10 @@ async function scaffoldPreCardsFixture() {
   const homeDir = join(root, "home");
   const agentsDir = join(homeDir, ".agents");
 
-  await mkdir(join(agentsDir, "bgng"), { recursive: true });
+  await mkdir(join(agentsDir, "drwn"), { recursive: true });
   await mkdir(join(agentsDir, "library"), { recursive: true });
   await mkdir(join(agentsDir, "packages", "skills", "@acme", "skills", "1.0.0", "skills", "shared", "hello"), { recursive: true });
-  await writeFile(join(agentsDir, "bgng", "config.json"), JSON.stringify({ version: 1, optional: {} }, null, 2));
+  await writeFile(join(agentsDir, "drwn", "config.json"), JSON.stringify({ version: 1, optional: {} }, null, 2));
   await writeFile(
     join(agentsDir, "library", "mcp-servers.json"),
     JSON.stringify(
@@ -67,21 +67,21 @@ test("migrateStore produces the expected post-cards layout", async () => {
 
   const result = await migrateStore({ agentsDir: fixture.agentsDir });
 
-  expect(existsSync(join(fixture.agentsDir, "bgng", "store.json"))).toBe(true);
-  expect(existsSync(join(fixture.agentsDir, "bgng", "machine.json"))).toBe(true);
-  expect(existsSync(join(fixture.agentsDir, "bgng", "cards"))).toBe(true);
-  expect(existsSync(join(fixture.agentsDir, "bgng", "sources"))).toBe(true);
-  expect(existsSync(join(fixture.agentsDir, "bgng", "generated"))).toBe(true);
-  expect(existsSync(join(fixture.agentsDir, "bgng", "cache"))).toBe(true);
-  expect(existsSync(join(fixture.agentsDir, "bgng", "mcp-servers", "context7.json"))).toBe(true);
-  expect(existsSync(join(fixture.agentsDir, "bgng", "mcp-servers", "github.json"))).toBe(true);
-  expect(existsSync(join(fixture.agentsDir, "bgng", "skills", "@acme", "skills", "1.0.0", "bundle.json"))).toBe(true);
-  expect(existsSync(join(fixture.agentsDir, "bgng", "skills", "@acme", "skills", "current"))).toBe(true);
+  expect(existsSync(join(fixture.agentsDir, "drwn", "store.json"))).toBe(true);
+  expect(existsSync(join(fixture.agentsDir, "drwn", "machine.json"))).toBe(true);
+  expect(existsSync(join(fixture.agentsDir, "drwn", "cards"))).toBe(true);
+  expect(existsSync(join(fixture.agentsDir, "drwn", "sources"))).toBe(true);
+  expect(existsSync(join(fixture.agentsDir, "drwn", "generated"))).toBe(true);
+  expect(existsSync(join(fixture.agentsDir, "drwn", "cache"))).toBe(true);
+  expect(existsSync(join(fixture.agentsDir, "drwn", "mcp-servers", "context7.json"))).toBe(true);
+  expect(existsSync(join(fixture.agentsDir, "drwn", "mcp-servers", "github.json"))).toBe(true);
+  expect(existsSync(join(fixture.agentsDir, "drwn", "skills", "@acme", "skills", "1.0.0", "bundle.json"))).toBe(true);
+  expect(existsSync(join(fixture.agentsDir, "drwn", "skills", "@acme", "skills", "current"))).toBe(true);
   expect(existsSync(result.archivedTo)).toBe(true);
   expect(existsSync(join(fixture.agentsDir, "library"))).toBe(false);
   expect(existsSync(join(fixture.agentsDir, "packages"))).toBe(false);
 
-  const context7 = JSON.parse(await readFile(join(fixture.agentsDir, "bgng", "mcp-servers", "context7.json"), "utf8"));
+  const context7 = JSON.parse(await readFile(join(fixture.agentsDir, "drwn", "mcp-servers", "context7.json"), "utf8"));
   expect(context7.command).toBe("npx");
 });
 
@@ -92,7 +92,7 @@ test("migrateStore re-run after success reports no migration", async () => {
   const result = await migrateStore({ agentsDir: fixture.agentsDir });
 
   expect(result.steps).toContain("no legacy layout detected");
-  expect(JSON.parse(readFileSync(join(fixture.agentsDir, "bgng", "store.json"), "utf8")).schemaVersion).toBe(1);
+  expect(JSON.parse(readFileSync(join(fixture.agentsDir, "drwn", "store.json"), "utf8")).schemaVersion).toBe(1);
 });
 
 test("detectLegacyLayout returns true even after the cards-era store is initialized", async () => {
@@ -110,6 +110,6 @@ test("migrateStore moves forward legacy data even when the cards-era store was p
   const result = await migrateStore({ agentsDir: fixture.agentsDir });
 
   expect(result.steps).not.toContain("no legacy layout detected");
-  expect(existsSync(join(fixture.agentsDir, "bgng", "mcp-servers", "context7.json"))).toBe(true);
+  expect(existsSync(join(fixture.agentsDir, "drwn", "mcp-servers", "context7.json"))).toBe(true);
   expect(detectLegacyLayout(fixture.agentsDir)).toBe(false);
 });

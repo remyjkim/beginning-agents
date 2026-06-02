@@ -24,7 +24,7 @@ async function createTempRoot() {
 }
 
 async function writeProjectConfig(projectDir: string, contents: object) {
-  const configPath = join(projectDir, ".agents", "bgng", "config.json");
+  const configPath = join(projectDir, ".agents", "drwn", "config.json");
   await mkdir(dirname(configPath), { recursive: true });
   await writeFile(configPath, JSON.stringify(contents, null, 2));
   return configPath;
@@ -87,7 +87,7 @@ describe("core project", () => {
 
   test("loadProjectConfig throws for malformed JSON", async () => {
     const root = await createTempRoot();
-    const configPath = join(root, ".agents", "bgng", "config.json");
+    const configPath = join(root, ".agents", "drwn", "config.json");
     await mkdir(dirname(configPath), { recursive: true });
     await writeFile(configPath, "{not-json");
 

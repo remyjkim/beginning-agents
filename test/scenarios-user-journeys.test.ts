@@ -148,7 +148,7 @@ describe("user journeys", () => {
     let result = await runAgentsCli(["init", "--non-interactive"], env, projectDir);
     expect(result.exitCode).toBe(0);
 
-    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    const projectConfigPath = join(projectDir, ".agents", "drwn", "config.json");
     await writeFile(
       projectConfigPath,
       JSON.stringify(
@@ -194,7 +194,7 @@ describe("user journeys", () => {
     tempRoots.push(fixture.root);
     await addParallelSkills(fixture.repoRoot);
     const projectDir = join(fixture.root, "project");
-    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    const projectConfigPath = join(projectDir, ".agents", "drwn", "config.json");
     await mkdir(dirname(projectConfigPath), { recursive: true });
     await writeFile(
       projectConfigPath,
@@ -234,7 +234,7 @@ describe("user journeys", () => {
     const fixture = await scaffoldCliFixture();
     tempRoots.push(fixture.root);
     const projectDir = join(fixture.root, "project");
-    const projectConfigPath = join(projectDir, ".agents", "bgng", "config.json");
+    const projectConfigPath = join(projectDir, ".agents", "drwn", "config.json");
     await mkdir(dirname(projectConfigPath), { recursive: true });
     await writeFile(
       projectConfigPath,

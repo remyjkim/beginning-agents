@@ -37,7 +37,7 @@ test("write twice for overlay-only project produces zero changes on second write
   const fixture = await scaffoldCliFixture();
   tempRoots.push(fixture.root);
   const projectDir = join(fixture.root, "project");
-  const configPath = join(projectDir, ".agents", "bgng", "config.json");
+  const configPath = join(projectDir, ".agents", "drwn", "config.json");
   await mkdir(dirname(configPath), { recursive: true });
   await writeFile(configPath, JSON.stringify({ version: 1, skills: { include: ["alpha"] } }, null, 2));
 
