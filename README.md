@@ -1,6 +1,8 @@
-# darwinian-harness
+<p align="center">
+  <img src="./docs/assets/darwinian-harness-logo.png" alt="Darwinian Harness" width="120" height="120" />
+</p>
 
-![The Darwinian Harness hero image](./docs/assets/the-darwinian-harness.png)
+# darwinian-harness
 
 `darwinian-harness` is a local meta-harness for AI agent tools: one CLI to organize skills, MCP servers, extensions, defaults, project overlays, downstream tool configs, and diagnostics.
 
